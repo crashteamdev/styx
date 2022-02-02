@@ -1,0 +1,13 @@
+spring:
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    password:
+app:
+  proxy:
+    api-key:
+    url: https://proxy6.net/api/
+
+application:
+  redis:
+    cache-cron: 0 0 6 * * ?
