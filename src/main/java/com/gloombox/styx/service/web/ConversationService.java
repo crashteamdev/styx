@@ -6,6 +6,7 @@ import com.gloombox.styx.model.web.ProxiedResponse;
 import com.gloombox.styx.service.proxy.CachedProxyService;
 import io.netty.channel.ChannelOption;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -19,6 +20,7 @@ import reactor.util.retry.Retry;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Random;
+import java.util.function.Consumer;
 
 @Service
 @RequiredArgsConstructor
@@ -38,20 +40,21 @@ public class ConversationService {
                 });
     }
 
-    private Mono<ResponseEntity<String>> getWebClientResponse(String url, CachedProxy proxy, Map<String, String> headers) {
-        return getWebClient(url, proxy).get()
-                .headers(httpHeaders -> headers.forEach(httpHeaders::add))
+    private Mono<ResponseEntity<Object>> getWebClientResponse(String url, CachedProxy proxy, Map<String, String> headers) {
+        return getWebClient(url, proxy, headers)
+                .get()
                 .retrieve()
                 .onStatus(HttpStatus::is5xxServerError,
                         response -> Mono.error(new FailedProxyRequestException("Proxy request error", response.rawStatusCode())))
-                .toEntity(String.class)
+                .toEntity(Object.class)
                 .retryWhen(Retry.backoff(2, Duration.ofSeconds(1))
                         .filter(throwable -> throwable instanceof FailedProxyRequestException));
 
     }
 
-    private WebClient getWebClient(String url, CachedProxy proxy) {
+    private WebClient getWebClient(String url, CachedProxy proxy, Map<String, String> headers) {
         return WebClient.builder()
+                .defaultHeaders(getHeadersConsumer(headers))
                 .baseUrl(url)
                 .clientConnector(getConnector(proxy))
                 .build();
@@ -68,6 +71,19 @@ public class ConversationService {
                                 .password(f -> proxy.getPassword()));
         return new ReactorClientHttpConnector(httpClient);
 
+    }
+
+    private Consumer<HttpHeaders> getHeadersConsumer(Map<String, String> headers) {
+        return httpHeaders -> {
+            headers.forEach((k, v) -> {
+                        switch (k) {
+                            case "User-Agent":
+                                httpHeaders.add(k, v);
+                            case "Authorization":
+                                httpHeaders.add(k, v);
+                        }
+                    });
+        };
     }
 
     private Mono<CachedProxy> getRandomProxy() {
