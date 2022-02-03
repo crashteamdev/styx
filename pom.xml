@@ -3,20 +3,21 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.6.3</version>
-        <relativePath/> <!-- lookup parent from repository -->
+        <groupId>dev.crashteam</groupId>
+        <artifactId>service-parent-pom</artifactId>
+        <version>1.0.0</version>
     </parent>
-    <groupId>com.gloombox</groupId>
-    <artifactId>Styx</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <artifactId>styx</artifactId>
+    <version>0.0.1</version>
     <name>Styx</name>
-    <description>Styx</description>
+    <description>Proxy service</description>
     <properties>
-        <java.version>17</java.version>
+        <server.port>8022</server.port>
+        <management.port>8023</management.port>
+        <exposed.ports>${server.port} ${management.port}</exposed.ports>
     </properties>
     <dependencies>
+        <!-- Spring -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
@@ -25,12 +26,27 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
 
+        <!-- Third party -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
+
+        <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -44,18 +60,59 @@
     </dependencies>
 
     <build>
+        <sourceDirectory>${project.basedir}/src/main/java</sourceDirectory>
+        <testSourceDirectory>${project.basedir}/src/test/java</testSourceDirectory>
+        <resources>
+            <resource>
+                <directory>${project.build.directory}/maven-shared-archive-resources</directory>
+                <targetPath>${project.build.directory}</targetPath>
+                <includes>
+                    <include>Dockerfile</include>
+                </includes>
+                <filtering>true</filtering>
+            </resource>
+            <resource>
+                <directory>${project.build.directory}/maven-shared-archive-resources</directory>
+                <filtering>true</filtering>
+                <excludes>
+                    <exclude>Dockerfile</exclude>
+                </excludes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-remote-resources-plugin</artifactId>
+                <version>1.6.0</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.apache.maven.shared</groupId>
+                        <artifactId>maven-filtering</artifactId>
+                        <version>1.3</version>
+                    </dependency>
+                </dependencies>
                 <configuration>
-                    <excludes>
-                        <exclude>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                        </exclude>
-                    </excludes>
+                    <resourceBundles>
+                        <resourceBundle>dev.crashteam:shared-resources:${shared-resources.version}</resourceBundle>
+                    </resourceBundles>
+                    <attachToMain>false</attachToMain>
+                    <attachToTest>false</attachToTest>
                 </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>process</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
