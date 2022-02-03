@@ -1,0 +1,13 @@
+name: Maven Deploy Artifact
+
+on:
+  push:
+    branches:
+      - 'master'
+      - 'main'
+
+jobs:
+  deploy:
+    uses: crashteamdev/base-workflow/.github/workflows/maven-service-deploy.yml@v1
+    secrets:
+      github-token: ${{ secrets.GITHUB_TOKEN }}
