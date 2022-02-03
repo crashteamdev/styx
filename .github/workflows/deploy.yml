@@ -8,6 +8,6 @@ on:
 
 jobs:
   deploy:
-    uses: crashteamdev/jvm-workflow/.github/workflows/maven-service-deploy.yml@v1
+    uses: crashteamdev/jvm-workflows/.github/workflows/maven-service-deploy.yml@v1
     secrets:
       github-token: ${{ secrets.GITHUB_TOKEN }}

@@ -7,4 +7,4 @@ on:
 
 jobs:
   build:
-    uses: crashteamdev/jvm-workflow/.github/workflows/maven-service-build.yml@v1
+    uses: crashteamdev/jvm-workflows/.github/workflows/maven-service-build.yml@v1
