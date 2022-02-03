@@ -76,11 +76,8 @@ public class ConversationService {
     private Consumer<HttpHeaders> getHeadersConsumer(Map<String, String> headers) {
         return httpHeaders -> {
             headers.forEach((k, v) -> {
-                        switch (k) {
-                            case "User-Agent":
-                                httpHeaders.add(k, v);
-                            case "Authorization":
-                                httpHeaders.add(k, v);
+                        if (k.startsWith("X-")) {
+                            httpHeaders.add(k.substring(2), v);
                         }
                     });
         };
