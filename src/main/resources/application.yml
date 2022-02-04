@@ -33,7 +33,7 @@ spring:
     password:
 app:
   proxy:
-    api-key:
+    api-key: 8e49f60a33-1752c4ba05-86fa429832
     url: https://proxy6.net/api/
 
 application:

@@ -3,7 +3,7 @@ package dev.crashteam.styx.model.web;
 import lombok.Data;
 
 @Data
-public class ProxiedResponse {
+public class Response {
 
     private int originalStatus;
     private String url;
