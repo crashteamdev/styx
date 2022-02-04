@@ -9,6 +9,7 @@ on:
 jobs:
   deploy:
     uses: crashteamdev/jvm-workflows/.github/workflows/maven-service-deploy.yml@v1
-    secrets:
+    with:
       registry-username: ${{ github.actor }}
+    secrets:
       registry-access-token: ${{ secrets.GITHUB_TOKEN }}
