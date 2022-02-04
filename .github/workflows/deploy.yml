@@ -10,4 +10,5 @@ jobs:
   deploy:
     uses: crashteamdev/jvm-workflows/.github/workflows/maven-service-deploy.yml@v1
     secrets:
-      github-token: ${{ secrets.GITHUB_TOKEN }}
+      registry-username: ${{ github.actor }}
+      registry-access-token: ${{ secrets.GITHUB_TOKEN }}
