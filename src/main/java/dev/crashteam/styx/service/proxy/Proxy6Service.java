@@ -12,10 +12,10 @@ import reactor.core.publisher.Flux;
 @Service
 public class Proxy6Service implements ProxyProvider {
 
-    @Value("${app.proxy.url}")
+    @Value("${app.proxy.proxy6.url}")
     private String proxyUrl;
 
-    @Value("${app.proxy.api-key}")
+    @Value("${app.proxy.proxy6.api-key}")
     private String apiKey;
 
     @Override

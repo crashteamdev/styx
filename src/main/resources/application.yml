@@ -33,8 +33,10 @@ spring:
     password:
 app:
   proxy:
-    api-key:
-    url: https://proxy6.net/api/
+    timeout: 2000
+    proxy6:
+      api-key:
+      url: https://proxy6.net/api/
 
 application:
   redis:

@@ -7,6 +7,7 @@ import dev.crashteam.styx.service.proxy.CachedProxyService;
 import io.netty.channel.ChannelOption;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,9 @@ import java.util.function.Consumer;
 public class ConversationService {
 
     private final CachedProxyService proxyService;
+
+    @Value("${app.proxy.timeout}")
+    private Integer timeout;
 
     public Mono<Result> getProxiedResponse(String url, Map<String, String> headers, WebSession webSession) {
         return getRandomProxy()
@@ -114,7 +118,7 @@ public class ConversationService {
 
     private ReactorClientHttpConnector getConnector(CachedProxy proxy) {
         HttpClient httpClient = HttpClient.create()
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 2000)
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, timeout)
                 .proxy(p ->
                         p.type(ProxyProvider.Proxy.HTTP)
                                 .host(proxy.getHost())
