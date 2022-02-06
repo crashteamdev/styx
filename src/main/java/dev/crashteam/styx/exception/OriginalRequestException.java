@@ -1,7 +1,5 @@
 package dev.crashteam.styx.exception;
 
-import lombok.Data;
-
 public class OriginalRequestException extends RuntimeException {
 
     private int statusCode;

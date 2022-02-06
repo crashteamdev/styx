@@ -1,7 +1,7 @@
 package dev.crashteam.styx.controller;
 
 import dev.crashteam.styx.model.proxy.CachedProxy;
-import dev.crashteam.styx.model.web.Response;
+import dev.crashteam.styx.model.web.Result;
 import dev.crashteam.styx.service.proxy.ExternalSourceProxyService;
 import dev.crashteam.styx.service.web.ConversationService;
 import lombok.RequiredArgsConstructor;
@@ -22,12 +22,10 @@ public class ProxyController {
     private final ExternalSourceProxyService externalSourceProxyService;
 
     @GetMapping("/proxy")
-    public Mono<ResponseEntity<Response>> getProxiedResult(@RequestParam("url") String url,
-                                                           @RequestHeader Map<String, String> headers,
-                                                           WebSession webSession) {
+    public Mono<ResponseEntity<Result>> getProxiedResult(@RequestParam("url") String url,
+                                                         @RequestHeader Map<String, String> headers,
+                                                         WebSession webSession) {
         webSession.getAttributes().put(webSession.getId(), 3);
-        webSession.getAttributes()
-                .forEach((k, v) -> System.out.println("key " + k + " value " + v));
         return conversationService.getProxiedResponse(url, headers, webSession)
                 .map(ResponseEntity::ok);
     }
