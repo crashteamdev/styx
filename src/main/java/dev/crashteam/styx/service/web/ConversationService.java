@@ -123,7 +123,7 @@ public class ConversationService {
                         p.type(ProxyProvider.Proxy.HTTP)
                                 .host(proxy.getHost())
                                 .port(Integer.parseInt(proxy.getPort()))
-                                .connectTimeoutMillis(4000)
+                                .connectTimeoutMillis(timeout)
                                 .username(proxy.getUser())
                                 .password(f -> proxy.getPassword()));
         return new ReactorClientHttpConnector(httpClient);
