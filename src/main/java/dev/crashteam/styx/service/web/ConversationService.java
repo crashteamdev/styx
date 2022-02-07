@@ -48,8 +48,8 @@ public class ConversationService {
 
     private Mono<Result> getProxiedWebClientResponse(String url, CachedProxy proxy,
                                                      Map<String, String> headers, WebSession webSession) {
-        log.info("Sending request via proxy - [{}:{}]. URL - {}. Bad proxy points - {}", proxy.getHost(), proxy.getPort(),
-                url, proxy.getBadProxyPoint());
+        log.info("Sending request via proxy - [{}:{}]. URL - {}. Proxy source - {}, Bad proxy points - {}", proxy.getHost(), proxy.getPort(),
+                url, proxy.getProxySource().getValue(), proxy.getBadProxyPoint());
         return getProxiedWebClient(url, proxy, headers)
                 .get()
                 .retrieve()
