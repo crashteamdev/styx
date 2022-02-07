@@ -35,6 +35,10 @@ public class Result {
         return new Result(MessageCode.PROXY_REQUEST_ERROR.getCode(), originalStatus, MessageCode.PROXY_REQUEST_ERROR.getText(), url, null);
     }
 
+    public static Result noActiveProxyError(String url) {
+        return new Result(MessageCode.NO_ACTIVE_PROXIES_ERROR.getCode(), null, MessageCode.NO_ACTIVE_PROXIES_ERROR.getText(), url, null);
+    }
+
     public static Result exhaustedRetriesProxyError(String url) {
         return new Result(MessageCode.RETRIES_EXHAUSTED_ERROR.getCode(), null, MessageCode.RETRIES_EXHAUSTED_ERROR.getText(), url, null);
     }

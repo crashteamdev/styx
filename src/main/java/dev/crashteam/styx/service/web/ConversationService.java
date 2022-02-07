@@ -79,7 +79,14 @@ public class ConversationService {
                     log.error("Trying to send request with another random proxy. Retries left: {}", retryCounter, e);
                     webSession.getAttributes().put(webSession.getId(), retryCounter);
                     return getRandomProxy()
-                            .flatMap(p -> getProxiedWebClientResponse(url, p, headers, webSession));
+                            .hasElement()
+                            .flatMap(hasElement -> {
+                                if (hasElement) {
+                                    return getRandomProxy().flatMap(p -> getProxiedWebClientResponse(url, p, headers, webSession));
+                                } else {
+                                    return Mono.just(Result.noActiveProxyError(url));
+                                }
+                            });
                 }).onErrorResume(throwable -> (int) webSession.getAttributes().get(webSession.getId()) == 0,
                         e -> Mono.just(Result.exhaustedRetriesProxyError(url)));
     }

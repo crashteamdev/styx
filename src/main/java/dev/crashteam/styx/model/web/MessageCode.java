@@ -6,7 +6,8 @@ public enum MessageCode {
     REQUEST_WITHOUT_PROXY_SUCCESS(-1, "Request successfully retrieved, but no proxy was used"),
     UNKNOWN_SERVER_ERROR(-2, "Unknown error acquired"),
     PROXY_REQUEST_ERROR(-3, "Proxy request error"),
-    RETRIES_EXHAUSTED_ERROR(-4, "Retries exhausted");
+    RETRIES_EXHAUSTED_ERROR(-4, "Retries exhausted"),
+    NO_ACTIVE_PROXIES_ERROR(-5, "No active proxies left");
 
     private int code;
     private String text;
