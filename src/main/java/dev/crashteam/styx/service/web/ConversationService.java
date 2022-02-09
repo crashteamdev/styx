@@ -138,13 +138,11 @@ public class ConversationService {
     }
 
     private Consumer<HttpHeaders> getHeadersConsumer(Map<String, String> headers) {
-        return httpHeaders -> {
-            headers.forEach((k, v) -> {
-                if (k.startsWith("X-")) {
-                    httpHeaders.add(k.substring(2), v);
-                }
-            });
-        };
+        return httpHeaders -> headers.forEach((k, v) -> {
+            if (k.startsWith("X-")) {
+                httpHeaders.add(k.substring(2), v);
+            }
+        });
     }
 
     private Mono<CachedProxy> getRandomProxy() {
