@@ -1,7 +1,6 @@
 package dev.crashteam.styx;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.crashteam.styx.controller.ProxyController;
 import dev.crashteam.styx.model.proxy.Proxy6Dto;
 import dev.crashteam.styx.service.proxy.CachedProxyService;
 import dev.crashteam.styx.service.proxy.ExternalSourceProxyService;
@@ -12,13 +11,10 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
-import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
