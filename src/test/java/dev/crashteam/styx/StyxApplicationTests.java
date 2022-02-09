@@ -25,7 +25,6 @@ import java.nio.file.Paths;
 
 
 @ExtendWith(SpringExtension.class)
-@WebFluxTest(controllers = ProxyController.class)
 @Import({ConversationService.class, ExternalSourceProxyService.class})
 class StyxApplicationTests {
 
