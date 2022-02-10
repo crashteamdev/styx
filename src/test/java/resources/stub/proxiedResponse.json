@@ -1,0 +1,9 @@
+{
+  "code": 0,
+  "originalStatus": 200,
+  "url": "https://catfact.ninja/fact",
+  "body": {
+    "fact": "The first true cats came into existence about 12 million years ago and were the Proailurus.",
+    "length": 91
+  }
+}

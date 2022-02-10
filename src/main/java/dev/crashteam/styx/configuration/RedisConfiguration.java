@@ -14,9 +14,11 @@ import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSeriali
 import org.springframework.data.redis.serializer.GenericToStringSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.session.data.redis.config.annotation.web.server.EnableRedisWebSession;
 
 @Configuration
 @RequiredArgsConstructor
+@EnableRedisWebSession
 public class RedisConfiguration {
 
     @Value("${spring.redis.host}")

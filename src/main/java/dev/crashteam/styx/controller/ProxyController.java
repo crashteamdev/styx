@@ -1,12 +1,13 @@
 package dev.crashteam.styx.controller;
 
 import dev.crashteam.styx.model.proxy.CachedProxy;
-import dev.crashteam.styx.model.web.ProxiedResponse;
+import dev.crashteam.styx.model.web.Result;
 import dev.crashteam.styx.service.proxy.ExternalSourceProxyService;
 import dev.crashteam.styx.service.web.ConversationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.WebSession;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -21,8 +22,11 @@ public class ProxyController {
     private final ExternalSourceProxyService externalSourceProxyService;
 
     @GetMapping("/proxy")
-    public Mono<ResponseEntity<ProxiedResponse>> getProxiedResult(@RequestParam("url") String url, @RequestHeader Map<String, String> headers) {
-        return conversationService.getProxiedResponse(url, headers)
+    public Mono<ResponseEntity<Result>> getProxiedResult(@RequestParam("url") String url,
+                                                         @RequestHeader Map<String, String> headers,
+                                                         WebSession webSession) {
+        webSession.getAttributes().put(webSession.getId(), 3);
+        return conversationService.getProxiedResponse(url, headers, webSession)
                 .map(ResponseEntity::ok);
     }
 
