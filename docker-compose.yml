@@ -1,0 +1,12 @@
+version: "3.9"
+services:
+  web:
+    build: .
+    ports:
+      - "8022:8022"
+      - "8023:8023"
+  redis:
+    image: "redis:alpine"
+    hostname: redis-image
+    ports:
+      - "6379:6379"
