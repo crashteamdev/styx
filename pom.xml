@@ -54,6 +54,13 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- CrashTeam -->
+        <dependency>
+            <groupId>dev.crashteam</groupId>
+            <artifactId>shared-resources</artifactId>
+            <version>${shared-resources.version}</version>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
