@@ -19,6 +19,7 @@ import reactor.netty.http.client.HttpClient;
 import reactor.netty.transport.ProxyProvider;
 
 import java.net.ConnectException;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
@@ -33,6 +34,9 @@ public class ConversationService {
 
     @Value("${app.proxy.timeout}")
     private Integer timeout;
+
+    @Value("${app.request.timeout}")
+    private Long requestTimeout;
 
     public Mono<Result> getProxiedResponse(String url, Map<String, String> headers, WebSession webSession) {
         return getRandomProxy()
@@ -149,6 +153,7 @@ public class ConversationService {
         Random random = new Random();
         final Flux<CachedProxy> activeProxies = proxyService.getActive();
         return activeProxies
+                .delaySubscription(Duration.ofMillis(requestTimeout))
                 .count()
                 .map(s -> {
                     if (s != null && s > 1) {
