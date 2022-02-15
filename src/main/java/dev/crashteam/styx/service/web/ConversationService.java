@@ -41,7 +41,7 @@ public class ConversationService {
     @Value("${app.proxy.timeout}")
     private Integer timeout;
 
-    private final int BUFFER_SIZE = 10485760;
+    private final int BUFFER_SIZE = 2 * 1024 * 1024;
 
     public Mono<Result> getProxiedResponse(String url, Map<String, String> headers, Long timeout) {
         return getRandomProxy(0L)
