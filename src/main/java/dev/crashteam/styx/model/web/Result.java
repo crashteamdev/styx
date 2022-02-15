@@ -31,8 +31,8 @@ public class Result {
         return new Result(MessageCode.REQUEST_WITHOUT_PROXY_SUCCESS.getCode(), originalStatus, null, url, body);
     }
 
-    public static Result proxyError(int originalStatus, String url) {
-        return new Result(MessageCode.PROXY_REQUEST_ERROR.getCode(), originalStatus, MessageCode.PROXY_REQUEST_ERROR.getText(), url, null);
+    public static Result proxyError(int originalStatus, String url, Object body) {
+        return new Result(MessageCode.PROXY_REQUEST_ERROR.getCode(), originalStatus, MessageCode.PROXY_REQUEST_ERROR.getText(), url, body);
     }
 
     public static Result noActiveProxyError(String url) {
@@ -43,8 +43,12 @@ public class Result {
         return new Result(MessageCode.RETRIES_EXHAUSTED_ERROR.getCode(), null, MessageCode.RETRIES_EXHAUSTED_ERROR.getText(), url, null);
     }
 
-    public static Result unknownError(int originalStatus, String url) {
-        return new Result(MessageCode.UNKNOWN_SERVER_ERROR.getCode(), originalStatus, MessageCode.UNKNOWN_SERVER_ERROR.getText(), url, null);
+    public static Result unknownError(int originalStatus, String url, Object body) {
+        return new Result(MessageCode.UNKNOWN_SERVER_ERROR.getCode(), originalStatus, MessageCode.UNKNOWN_SERVER_ERROR.getText(), url, body);
+    }
+
+    public static Result proxyConnectionError(String url) {
+        return new Result(MessageCode.PROXY_CONNECTION_EXCEPTION.getCode(), null, MessageCode.PROXY_CONNECTION_EXCEPTION.getText(), url, null);
     }
 
 }

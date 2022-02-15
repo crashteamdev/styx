@@ -1,6 +1,6 @@
-package dev.crashteam.styx.repository;
+package dev.crashteam.styx.repository.proxy;
 
-import dev.crashteam.styx.model.RedisProxyKey;
+import dev.crashteam.styx.model.RedisKey;
 import dev.crashteam.styx.model.proxy.CachedProxy;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,18 +24,18 @@ public class ProxyRepositoryImpl implements ProxyRepository {
 
     @Override
     public Flux<CachedProxy> findActive() {
-        return hashOperations.values(RedisProxyKey.PROXY_KEY.getValue())
+        return hashOperations.values(RedisKey.PROXY_KEY.getValue())
                 .filter(CachedProxy::getActive);
     }
 
     @Override
     public Flux<CachedProxy> findAll() {
-        return hashOperations.values(RedisProxyKey.PROXY_KEY.getValue());
+        return hashOperations.values(RedisKey.PROXY_KEY.getValue());
     }
 
     @Override
     public <S extends CachedProxy> Mono<S> save(S entity) {
-        return hashOperations.put(RedisProxyKey.PROXY_KEY.getValue(), getRedisHashKey(entity), entity)
+        return hashOperations.put(RedisKey.PROXY_KEY.getValue(), getRedisHashKey(entity), entity)
                 .thenReturn(entity);
     }
 

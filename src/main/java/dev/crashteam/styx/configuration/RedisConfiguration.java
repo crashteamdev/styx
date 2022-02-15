@@ -2,6 +2,7 @@ package dev.crashteam.styx.configuration;
 
 
 import dev.crashteam.styx.model.proxy.CachedProxy;
+import dev.crashteam.styx.model.request.RetriesRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -14,11 +15,9 @@ import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSeriali
 import org.springframework.data.redis.serializer.GenericToStringSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
-import org.springframework.session.data.redis.config.annotation.web.server.EnableRedisWebSession;
 
 @Configuration
 @RequiredArgsConstructor
-@EnableRedisWebSession
 public class RedisConfiguration {
 
     @Value("${spring.redis.host}")
@@ -45,6 +44,18 @@ public class RedisConfiguration {
                 .<String, CachedProxy>newSerializationContext(new StringRedisSerializer())
                 .key(new StringRedisSerializer())
                 .value(new GenericToStringSerializer<>(CachedProxy.class))
+                .hashKey(new StringRedisSerializer())
+                .hashValue(new GenericJackson2JsonRedisSerializer())
+                .build();
+        return new ReactiveRedisTemplate<>(connectionFactory, serializationContext);
+    }
+
+    @Bean
+    public ReactiveRedisOperations<String, RetriesRequest> redisRetriesRequestOperations(LettuceConnectionFactory connectionFactory) {
+        RedisSerializationContext<String, RetriesRequest> serializationContext = RedisSerializationContext
+                .<String, RetriesRequest>newSerializationContext(new StringRedisSerializer())
+                .key(new StringRedisSerializer())
+                .value(new GenericToStringSerializer<>(RetriesRequest.class))
                 .hashKey(new StringRedisSerializer())
                 .hashValue(new GenericJackson2JsonRedisSerializer())
                 .build();

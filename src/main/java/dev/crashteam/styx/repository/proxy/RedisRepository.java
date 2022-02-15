@@ -1,8 +1,8 @@
-package dev.crashteam.styx.repository;
+package dev.crashteam.styx.repository.proxy;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.crashteam.styx.model.RedisProxyKey;
+import dev.crashteam.styx.model.RedisKey;
 import dev.crashteam.styx.model.proxy.CachedProxy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
@@ -20,17 +20,17 @@ public class RedisRepository {
     private final ReactiveRedisTemplate<String, String> proxyReactiveRedisTemplate;
     private final ObjectMapper objectMapper;
 
-    public Mono<Boolean> hasKey(RedisProxyKey key) {
+    public Mono<Boolean> hasKey(RedisKey key) {
         return proxyReactiveRedisTemplate.hasKey(key.getValue());
     }
 
-    public void saveProxies(List<CachedProxy> proxy, RedisProxyKey key) {
+    public void saveProxies(List<CachedProxy> proxy, RedisKey key) {
 
         proxyListToJson(proxy)
                 .subscribe(v -> proxyReactiveRedisTemplate.opsForValue().set(key.getValue(), v));
     }
 
-    public void saveBadProxies(List<CachedProxy> proxies, RedisProxyKey key) {
+    public void saveBadProxies(List<CachedProxy> proxies, RedisKey key) {
         proxyReactiveRedisTemplate.hasKey("")
                 .filter(v -> v)
                 .flatMap(v -> getMonoListCachedProxyByKey(key))
@@ -41,13 +41,13 @@ public class RedisRepository {
                 });
     }
 
-    public Flux<CachedProxy> getFLuxCachedProxyByKey(RedisProxyKey key) {
+    public Flux<CachedProxy> getFLuxCachedProxyByKey(RedisKey key) {
         return proxyReactiveRedisTemplate.opsForValue().get(key.getValue())
                 .flatMap(this::getMappedProxyList)
                 .flatMapIterable(list -> list);
     }
 
-    public Mono<List<CachedProxy>> getMonoListCachedProxyByKey(RedisProxyKey key) {
+    public Mono<List<CachedProxy>> getMonoListCachedProxyByKey(RedisKey key) {
         return proxyReactiveRedisTemplate.opsForValue().get(key.getValue())
                 .flatMap(this::getMappedProxyList);
     }
