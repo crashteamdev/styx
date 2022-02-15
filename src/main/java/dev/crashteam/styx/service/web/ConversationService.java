@@ -15,6 +15,7 @@ import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.ClientResponse;
+import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -39,6 +40,8 @@ public class ConversationService {
 
     @Value("${app.proxy.timeout}")
     private Integer timeout;
+
+    private final int BUFFER_SIZE = 10485760;
 
     public Mono<Result> getProxiedResponse(String url, Map<String, String> headers, Long timeout) {
         return getRandomProxy(0L)
@@ -115,6 +118,7 @@ public class ConversationService {
 
     private WebClient getProxiedWebClient(String url, CachedProxy proxy, Map<String, String> headers) {
         return WebClient.builder()
+                .exchangeStrategies(getMaxBufferSize())
                 .defaultHeaders(getHeadersConsumer(headers))
                 .baseUrl(url)
                 .clientConnector(getConnector(proxy))
@@ -123,6 +127,7 @@ public class ConversationService {
 
     private WebClient getWebClient(String url, Map<String, String> headers) {
         return WebClient.builder()
+                .exchangeStrategies(getMaxBufferSize())
                 .defaultHeaders(getHeadersConsumer(headers))
                 .baseUrl(url)
                 .build();
@@ -172,6 +177,13 @@ public class ConversationService {
     private Mono<? extends Throwable> getMonoError(ClientResponse response) {
         return response.bodyToMono(Object.class)
                 .flatMap(body -> Mono.error(new OriginalRequestException("Proxy request error", body, response.rawStatusCode())));
+
+    }
+
+    private ExchangeStrategies getMaxBufferSize() {
+         return ExchangeStrategies.builder()
+                .codecs(codecs -> codecs.defaultCodecs().maxInMemorySize(BUFFER_SIZE))
+                .build();
 
     }
 }
