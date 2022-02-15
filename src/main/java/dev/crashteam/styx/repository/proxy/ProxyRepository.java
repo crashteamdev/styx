@@ -1,4 +1,4 @@
-package dev.crashteam.styx.repository;
+package dev.crashteam.styx.repository.proxy;
 
 import dev.crashteam.styx.model.proxy.CachedProxy;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;

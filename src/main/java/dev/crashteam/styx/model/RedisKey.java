@@ -1,12 +1,13 @@
 package dev.crashteam.styx.model;
 
-public enum RedisProxyKey {
+public enum RedisKey {
 
+    REQUEST_KEY("REQUEST_KEY"),
     PROXY_KEY("PROXY_KEY");
 
     private String value;
 
-    RedisProxyKey(String value) {
+    RedisKey(String value) {
         this.value = value;
     }
 
