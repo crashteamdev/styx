@@ -23,10 +23,9 @@ public class ProxyController {
 
     @GetMapping("/proxy")
     public Mono<ResponseEntity<Result>> getProxiedResult(@RequestParam("url") String url,
-                                                         @RequestParam(value = "requestId", required = false) String requestId,
                                                          @RequestParam(value = "timeout", required = false, defaultValue = "0") Long timeout,
                                                          @RequestHeader Map<String, String> headers) {
-        return conversationService.getProxiedResponse(url, headers, requestId, timeout)
+        return conversationService.getProxiedResponse(url, headers, timeout)
                 .map(ResponseEntity::ok);
     }
 
