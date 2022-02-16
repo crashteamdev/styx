@@ -7,10 +7,11 @@ import dev.crashteam.styx.service.web.ConversationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.WebSession;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -25,7 +26,7 @@ public class ProxyController {
     public Mono<ResponseEntity<Result>> getProxiedResult(@RequestParam("url") String url,
                                                          @RequestParam(value = "timeout", required = false, defaultValue = "0") Long timeout,
                                                          @RequestHeader Map<String, String> headers) {
-        return conversationService.getProxiedResponse(url, headers, timeout)
+        return conversationService.getProxiedResponse(URLDecoder.decode(url, StandardCharsets.UTF_8), headers, timeout)
                 .map(ResponseEntity::ok);
     }
 
