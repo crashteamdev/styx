@@ -74,7 +74,7 @@ public class ConversationService {
                     final OriginalRequestException requestException = (OriginalRequestException) e;
                     return Mono.just(Result.proxyError(requestException.getStatusCode(), url, requestException.getBody()));
                 })
-                .onErrorResume(throwable -> throwable instanceof ConnectException && StringUtils.hasText(requestId), e -> {
+                .onErrorResume(throwable -> throwable instanceof ProxyConnectException, e -> {
                     log.error("Trying to send request with another random proxy. ", e);
                     return retriesRequestService.findByRequestId(requestId)
                             .flatMap(request -> {
@@ -97,7 +97,7 @@ public class ConversationService {
                                 }
                             });
                 })
-                .onErrorResume(throwable -> throwable instanceof ProxyConnectException, e -> Mono.just(Result.proxyConnectionError(url)));
+                .onErrorResume(throwable -> throwable instanceof ConnectException, e -> Mono.just(Result.proxyConnectionError(url)));
     }
 
     private Mono<Result> getWebClientResponse(String url, Map<String, String> headers) {
