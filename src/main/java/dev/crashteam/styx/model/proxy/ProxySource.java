@@ -1,7 +1,7 @@
 package dev.crashteam.styx.model.proxy;
 
 public enum ProxySource {
-    PROXY6("Proxy6"),
+    PROXY_LINE("Proxy6"),
     EXTERNAL_SOURCE("External source");
 
     ProxySource(String value) {

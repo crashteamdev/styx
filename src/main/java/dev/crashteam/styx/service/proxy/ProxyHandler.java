@@ -1,7 +1,7 @@
 package dev.crashteam.styx.service.proxy;
 
 import dev.crashteam.styx.model.proxy.CachedProxy;
-import dev.crashteam.styx.model.proxy.Proxy6Dto;
+import dev.crashteam.styx.model.proxy.ProxyLineResponse;
 import dev.crashteam.styx.model.proxy.ProxySource;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
@@ -10,14 +10,13 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
 import javax.annotation.PostConstruct;
-import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 @EnableAsync
 public class ProxyHandler {
 
-    private final Proxy6Service proxy6Service;
+    private final ProxyLineService proxyLineService;
     private final CachedProxyService proxyService;
 
     @Async
@@ -29,23 +28,21 @@ public class ProxyHandler {
     }
 
     private Flux<CachedProxy> getAllProxies() {
-        return getProxy6Values();
+        return getProxyLineValues();
     }
 
-    private Flux<CachedProxy> getProxy6Values() {
-        return proxy6Service.getProxy()
-                .map(Proxy6Dto::getProxies)
-                .filter(p -> !p.values().isEmpty())
-                .map(Map::values)
+    private Flux<CachedProxy> getProxyLineValues() {
+        return proxyLineService.getProxy()
+                .map(ProxyLineResponse::getResults)
                 .flatMap(Flux::fromIterable)
-                .map(p -> {
+                .map((ProxyLineResponse.ProxyLineResult p) -> {
                     CachedProxy cachedProxy = new CachedProxy();
-                    cachedProxy.setHost(p.getHost());
-                    cachedProxy.setPort(p.getPort());
+                    cachedProxy.setHost(p.getIp());
+                    cachedProxy.setPort(p.getPortHttp());
                     cachedProxy.setActive(true);
-                    cachedProxy.setProxySource(ProxySource.PROXY6);
+                    cachedProxy.setProxySource(ProxySource.PROXY_LINE);
                     cachedProxy.setUser(p.getUser());
-                    cachedProxy.setPassword(p.getPass());
+                    cachedProxy.setPassword(p.getPassword());
                     return cachedProxy;
                 });
 

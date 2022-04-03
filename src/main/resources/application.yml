@@ -35,8 +35,8 @@ app:
   proxy:
     timeout: 3000
     proxy6:
-      api-key:
-      url: https://proxy6.net/api/
+      api-key: some-api-key
+      url: https://panel.proxyline.net/api/
 
 application:
   redis:
