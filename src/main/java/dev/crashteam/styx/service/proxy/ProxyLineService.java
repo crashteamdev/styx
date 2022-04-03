@@ -1,7 +1,6 @@
 package dev.crashteam.styx.service.proxy;
 
-
-import dev.crashteam.styx.model.proxy.Proxy6Dto;
+import dev.crashteam.styx.model.proxy.ProxyLineResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -10,7 +9,7 @@ import reactor.core.publisher.Flux;
 
 @Slf4j
 @Service
-public class Proxy6Service implements ProxyProvider {
+public class ProxyLineService implements ProxyProvider {
 
     @Value("${app.proxy.proxy6.url}")
     private String proxyUrl;
@@ -19,13 +18,13 @@ public class Proxy6Service implements ProxyProvider {
     private String apiKey;
 
     @Override
-    public Flux<Proxy6Dto> getProxy() {
+    public Flux<ProxyLineResponse> getProxy() {
         WebClient webClient = WebClient.builder()
-                .baseUrl(proxyUrl + apiKey + "/getproxy")
+                .baseUrl(proxyUrl + "proxies/?api_key=" + apiKey)
                 .build();
         return webClient.get()
                 .retrieve()
-                .bodyToFlux(Proxy6Dto.class)
+                .bodyToFlux(ProxyLineResponse.class)
                 .doOnError(throwable -> log.error("Exception caught on webclient process with cause:", throwable));
 
     }
