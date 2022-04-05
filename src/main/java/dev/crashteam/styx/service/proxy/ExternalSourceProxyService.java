@@ -1,7 +1,7 @@
 package dev.crashteam.styx.service.proxy;
 
 
-import dev.crashteam.styx.model.proxy.CachedProxy;
+import dev.crashteam.styx.model.proxy.ProxyInstance;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -14,7 +14,7 @@ public class ExternalSourceProxyService {
 
     private final CachedProxyService cachedProxyService;
 
-    public Flux<CachedProxy> saveProxyFromExternalSource(List<CachedProxy> cachedProxies) {
+    public Flux<ProxyInstance> saveProxyFromExternalSource(List<ProxyInstance> cachedProxies) {
         return cachedProxyService.saveAll(cachedProxies);
     }
 }

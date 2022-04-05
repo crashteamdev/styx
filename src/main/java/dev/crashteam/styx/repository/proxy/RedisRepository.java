@@ -3,7 +3,7 @@ package dev.crashteam.styx.repository.proxy;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.crashteam.styx.model.RedisKey;
-import dev.crashteam.styx.model.proxy.CachedProxy;
+import dev.crashteam.styx.model.proxy.ProxyInstance;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -24,13 +24,13 @@ public class RedisRepository {
         return proxyReactiveRedisTemplate.hasKey(key.getValue());
     }
 
-    public void saveProxies(List<CachedProxy> proxy, RedisKey key) {
+    public void saveProxies(List<ProxyInstance> proxy, RedisKey key) {
 
         proxyListToJson(proxy)
                 .subscribe(v -> proxyReactiveRedisTemplate.opsForValue().set(key.getValue(), v));
     }
 
-    public void saveBadProxies(List<CachedProxy> proxies, RedisKey key) {
+    public void saveBadProxies(List<ProxyInstance> proxies, RedisKey key) {
         proxyReactiveRedisTemplate.hasKey("")
                 .filter(v -> v)
                 .flatMap(v -> getMonoListCachedProxyByKey(key))
@@ -41,24 +41,24 @@ public class RedisRepository {
                 });
     }
 
-    public Flux<CachedProxy> getFLuxCachedProxyByKey(RedisKey key) {
+    public Flux<ProxyInstance> getFLuxCachedProxyByKey(RedisKey key) {
         return proxyReactiveRedisTemplate.opsForValue().get(key.getValue())
                 .flatMap(this::getMappedProxyList)
                 .flatMapIterable(list -> list);
     }
 
-    public Mono<List<CachedProxy>> getMonoListCachedProxyByKey(RedisKey key) {
+    public Mono<List<ProxyInstance>> getMonoListCachedProxyByKey(RedisKey key) {
         return proxyReactiveRedisTemplate.opsForValue().get(key.getValue())
                 .flatMap(this::getMappedProxyList);
     }
 
-    private Mono<String> proxyListToJson(List<CachedProxy> proxy) {
+    private Mono<String> proxyListToJson(List<ProxyInstance> proxy) {
         return Mono.fromCallable(() ->
                 objectMapper.writeValueAsString(proxy)
         );
     }
 
-    private Mono<List<CachedProxy>> getMappedProxyList(String json) {
+    private Mono<List<ProxyInstance>> getMappedProxyList(String json) {
         return Mono.fromCallable(() -> objectMapper.readValue(
                 json, new TypeReference<>() {
                 }));

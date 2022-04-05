@@ -34,7 +34,7 @@ spring:
 app:
   proxy:
     timeout: 3000
-    proxy6:
+    proxy-line:
       api-key: some-api-key
       url: https://panel.proxyline.net/api/
 

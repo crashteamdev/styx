@@ -1,7 +1,7 @@
 package dev.crashteam.styx.service.web;
 
 import dev.crashteam.styx.exception.OriginalRequestException;
-import dev.crashteam.styx.model.proxy.CachedProxy;
+import dev.crashteam.styx.model.proxy.ProxyInstance;
 import dev.crashteam.styx.model.request.RetriesRequest;
 import dev.crashteam.styx.model.web.Result;
 import dev.crashteam.styx.service.proxy.CachedProxyService;
@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -57,7 +56,7 @@ public class ConversationService {
                 });
     }
 
-    private Mono<Result> getProxiedWebClientResponse(String url, CachedProxy proxy,
+    private Mono<Result> getProxiedWebClientResponse(String url, ProxyInstance proxy,
                                                      Map<String, String> headers, String requestId, Long timeout) {
         log.info("Sending request via proxy - [{}:{}]. URL - {}. Proxy source - {}, Bad proxy points - {}", proxy.getHost(), proxy.getPort(),
                 url, proxy.getProxySource().getValue(), proxy.getBadProxyPoint());
@@ -116,7 +115,7 @@ public class ConversationService {
                         });
     }
 
-    private WebClient getProxiedWebClient(String url, CachedProxy proxy, Map<String, String> headers) {
+    private WebClient getProxiedWebClient(String url, ProxyInstance proxy, Map<String, String> headers) {
         return WebClient.builder()
                 .exchangeStrategies(getMaxBufferSize())
                 .defaultHeaders(getHeadersConsumer(headers))
@@ -133,7 +132,7 @@ public class ConversationService {
                 .build();
     }
 
-    private ReactorClientHttpConnector getConnector(CachedProxy proxy) {
+    private ReactorClientHttpConnector getConnector(ProxyInstance proxy) {
         HttpClient httpClient = HttpClient.create()
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, timeout)
                 .proxy(p ->
@@ -155,9 +154,9 @@ public class ConversationService {
         });
     }
 
-    private Mono<CachedProxy> getRandomProxy(Long timeout) {
+    private Mono<ProxyInstance> getRandomProxy(Long timeout) {
         Random random = new Random();
-        final Flux<CachedProxy> activeProxies = proxyService.getActive();
+        final Flux<ProxyInstance> activeProxies = proxyService.getActive();
         return activeProxies
                 .delaySubscription(Duration.ofMillis(timeout))
                 .count()

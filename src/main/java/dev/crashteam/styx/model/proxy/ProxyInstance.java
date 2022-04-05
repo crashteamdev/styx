@@ -3,7 +3,7 @@ package dev.crashteam.styx.model.proxy;
 import lombok.Data;
 
 @Data
-public class CachedProxy {
+public class ProxyInstance {
 
     private String host;
     private String port;
