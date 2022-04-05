@@ -40,8 +40,8 @@ class StyxApplicationTests {
         objectMapper.findAndRegisterModules();
         ProxyLineResponse proxies = objectMapper.readValue(getStubJson("src/test/java/resources/stub/proxylineresponse.json"),
                 ProxyLineResponse.class);
-        Mockito.when(proxyLineService.getProxy()).thenReturn(Flux.just(proxies));
-        Assertions.assertDoesNotThrow(() -> proxyLineService.getProxy());
+        Mockito.when(proxyLineService.getProxyFromSource()).thenReturn(Flux.just(proxies));
+        Assertions.assertDoesNotThrow(() -> proxyLineService.getProxyFromSource());
     }
 
     @SneakyThrows

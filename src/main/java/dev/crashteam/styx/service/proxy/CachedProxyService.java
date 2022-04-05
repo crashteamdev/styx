@@ -1,7 +1,7 @@
 package dev.crashteam.styx.service.proxy;
 
 
-import dev.crashteam.styx.model.proxy.CachedProxy;
+import dev.crashteam.styx.model.proxy.ProxyInstance;
 import dev.crashteam.styx.repository.proxy.ProxyRepositoryImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,29 +19,29 @@ public class CachedProxyService {
 
     private final ProxyRepositoryImpl proxyRepository;
 
-    public Flux<CachedProxy> getActive() {
+    public Flux<ProxyInstance> getActive() {
         return proxyRepository.findActive();
     }
 
-    public Flux<CachedProxy> getAll() {
+    public Flux<ProxyInstance> getAll() {
         return proxyRepository.findAll();
     }
 
-    public Mono<CachedProxy> save(CachedProxy proxy) {
+    public Mono<ProxyInstance> save(ProxyInstance proxy) {
         log.info("Saving proxy [{}, {}] with values - Active: {}. Bad proxy points: {}", proxy.getHost(), proxy.getPort(),
                 proxy.getActive(), proxy.getBadProxyPoint());
         return proxyRepository.save(proxy);
     }
 
-    public Flux<CachedProxy> saveAll(List<CachedProxy> proxies) {
+    public Flux<ProxyInstance> saveAll(List<ProxyInstance> proxies) {
         return proxyRepository.saveAll(proxies);
     }
 
-    public Flux<CachedProxy> saveAll(Publisher<CachedProxy> entityStream) {
+    public Flux<ProxyInstance> saveAll(Publisher<ProxyInstance> entityStream) {
         return proxyRepository.saveAll(entityStream);
     }
 
-    public void setBadProxyOnError(CachedProxy proxy, Throwable ex) {
+    public void setBadProxyOnError(ProxyInstance proxy, Throwable ex) {
         proxy.setBadProxyPoint(proxy.getBadProxyPoint() + 1);
         if (proxy.getBadProxyPoint() == 3) {
             proxy.setActive(false);

@@ -1,7 +1,7 @@
 package dev.crashteam.styx.configuration;
 
 
-import dev.crashteam.styx.model.proxy.CachedProxy;
+import dev.crashteam.styx.model.proxy.ProxyInstance;
 import dev.crashteam.styx.model.request.RetriesRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,11 +39,11 @@ public class RedisConfiguration {
     }
 
     @Bean
-    public ReactiveRedisOperations<String, CachedProxy> redisOperations(LettuceConnectionFactory connectionFactory) {
-        RedisSerializationContext<String, CachedProxy> serializationContext = RedisSerializationContext
-                .<String, CachedProxy>newSerializationContext(new StringRedisSerializer())
+    public ReactiveRedisOperations<String, ProxyInstance> redisOperations(LettuceConnectionFactory connectionFactory) {
+        RedisSerializationContext<String, ProxyInstance> serializationContext = RedisSerializationContext
+                .<String, ProxyInstance>newSerializationContext(new StringRedisSerializer())
                 .key(new StringRedisSerializer())
-                .value(new GenericToStringSerializer<>(CachedProxy.class))
+                .value(new GenericToStringSerializer<>(ProxyInstance.class))
                 .hashKey(new StringRedisSerializer())
                 .hashValue(new GenericJackson2JsonRedisSerializer())
                 .build();

@@ -1,6 +1,6 @@
 package dev.crashteam.styx.controller;
 
-import dev.crashteam.styx.model.proxy.CachedProxy;
+import dev.crashteam.styx.model.proxy.ProxyInstance;
 import dev.crashteam.styx.model.web.Result;
 import dev.crashteam.styx.service.proxy.ExternalSourceProxyService;
 import dev.crashteam.styx.service.web.ConversationService;
@@ -31,7 +31,7 @@ public class ProxyController {
     }
 
     @PostMapping("/save")
-    public Flux<ResponseEntity<CachedProxy>> saveProxy(@RequestBody List<CachedProxy> cachedProxies) {
+    public Flux<ResponseEntity<ProxyInstance>> saveProxy(@RequestBody List<ProxyInstance> cachedProxies) {
         return externalSourceProxyService.saveProxyFromExternalSource(cachedProxies)
                 .map(ResponseEntity::ok);
     }

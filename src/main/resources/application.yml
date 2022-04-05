@@ -28,13 +28,13 @@ spring:
       ansi:
         enabled: always
   redis:
-    host: redis-image
+    host: localhost
     port: 6379
     password:
 app:
   proxy:
     timeout: 3000
-    proxy6:
+    proxy-line:
       api-key: some-api-key
       url: https://panel.proxyline.net/api/
 
