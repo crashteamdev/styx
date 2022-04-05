@@ -28,7 +28,7 @@ spring:
       ansi:
         enabled: always
   redis:
-    host: localhost
+    host: redis-image
     port: 6379
     password:
 app:
