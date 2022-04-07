@@ -38,7 +38,7 @@ public class ConversationService {
     private final RetriesRequestService retriesRequestService;
 
     @Value("${app.proxy.timeout}")
-    private Integer timeout;
+    private Integer proxyConnectionTimeout;
 
     private final int BUFFER_SIZE = 2 * 1024 * 1024;
 
@@ -134,12 +134,12 @@ public class ConversationService {
 
     private ReactorClientHttpConnector getConnector(ProxyInstance proxy) {
         HttpClient httpClient = HttpClient.create()
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, timeout)
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, proxyConnectionTimeout)
                 .proxy(p ->
                         p.type(ProxyProvider.Proxy.HTTP)
                                 .host(proxy.getHost())
                                 .port(Integer.parseInt(proxy.getPort()))
-                                .connectTimeoutMillis(timeout)
+                                .connectTimeoutMillis(proxyConnectionTimeout)
                                 .username(proxy.getUser())
                                 .password(f -> proxy.getPassword()));
         return new ReactorClientHttpConnector(httpClient);
