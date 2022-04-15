@@ -22,7 +22,7 @@ public class WebClientService {
     @Value("${app.proxy.timeout}")
     private int proxyConnectionTimeout;
     @Value("${app.timeout-handler}")
-    private int handleTimeout;
+    private int handlerTimeout;
 
     private final int BUFFER_SIZE = 2 * 1024 * 1024;
 
@@ -47,8 +47,8 @@ public class WebClientService {
     private ReactorClientHttpConnector getConnector() {
         HttpClient httpClient = HttpClient.create()
                 .doOnConnected(conn -> conn
-                        .addHandlerLast(new ReadTimeoutHandler(handleTimeout))
-                        .addHandlerLast(new WriteTimeoutHandler(handleTimeout)))
+                        .addHandlerLast(new ReadTimeoutHandler(handlerTimeout))
+                        .addHandlerLast(new WriteTimeoutHandler(handlerTimeout)))
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, proxyConnectionTimeout);
         return new ReactorClientHttpConnector(httpClient);
     }
@@ -56,8 +56,8 @@ public class WebClientService {
     private ReactorClientHttpConnector getProxiedConnector(ProxyInstance proxy) {
         HttpClient httpClient = HttpClient.create()
                 .doOnConnected(conn -> conn
-                        .addHandlerLast(new ReadTimeoutHandler(10))
-                        .addHandlerLast(new WriteTimeoutHandler(10)))
+                        .addHandlerLast(new ReadTimeoutHandler(handlerTimeout))
+                        .addHandlerLast(new WriteTimeoutHandler(handlerTimeout)))
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, proxyConnectionTimeout)
                 .proxy(p ->
                         p.type(ProxyProvider.Proxy.HTTP)
