@@ -32,8 +32,9 @@ spring:
     port: 6379
     password:
 app:
+  timeout-handler: 10
   proxy:
-    timeout: 3000
+    timeout: 10000
     proxy-line:
       api-key: some-api-key
       url: https://panel.proxyline.net/api/
