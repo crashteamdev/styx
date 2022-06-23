@@ -39,7 +39,7 @@ public class ProxyLineService implements ProxyProvider {
 
     public Flux<ProxyLineResponse> getProxyFromSource() {
         WebClient webClient = WebClient.builder()
-                .baseUrl(proxyUrl + "proxies/?api_key=" + apiKey)
+                .baseUrl(proxyUrl + "proxies/?api_key=" + apiKey + "&status=active")
                 .build();
         return webClient.get()
                 .retrieve()
