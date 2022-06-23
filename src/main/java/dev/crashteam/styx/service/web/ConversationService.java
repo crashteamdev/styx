@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.ClientResponse;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -45,7 +46,8 @@ public class ConversationService {
 
     private Mono<Result> getProxiedWebClientResponse(String url, ProxyInstance proxy,
                                                      Map<String, String> headers, String requestId, Long timeout) {
-        log.info("Sending request via proxy - [{}:{}]. URL - {}. Proxy source - {}, Bad proxy points - {}", proxy.getHost(), proxy.getPort(),
+        log.info("Sending request via proxy - [{}:{}]. URL - {}. Proxy source - {}, Bad proxy points - {}",
+                proxy.getHost(), proxy.getPort(),
                 url, proxy.getProxySource().getValue(), proxy.getBadProxyPoint());
         return webClientService.getProxiedWebClient(url, proxy, headers)
                 .get()
@@ -53,18 +55,37 @@ public class ConversationService {
                 .onStatus(httpStatus -> !httpStatus.is2xxSuccessful(), this::getMonoError)
                 .toEntity(Object.class)
                 .map(response -> Result.success(response.getStatusCodeValue(), url, response.getBody()))
-                .doOnError(throwable -> throwable instanceof ConnectException, ex -> proxyService.setBadProxyOnError(proxy, ex))
                 .doOnSuccess(result -> retriesRequestService.deleteByRequestId(requestId).subscribe())
                 .onErrorResume(throwable -> throwable instanceof OriginalRequestException, e -> {
                     log.error("Request with proxy failed with an error: ", e);
                     final OriginalRequestException requestException = (OriginalRequestException) e;
                     return Mono.just(Result.proxyError(requestException.getStatusCode(), url, requestException.getBody()));
                 })
-                .onErrorResume(throwable -> throwable instanceof ConnectException, e -> connectionErrorResult(e, requestId, url, headers, timeout))
-                .onErrorResume(throwable -> throwable instanceof ProxyConnectException, e -> Mono.just(Result.proxyConnectionError(url)));
+                .onErrorResume(throwable -> throwable instanceof ConnectException
+                                || throwable instanceof WebClientRequestException, e -> {
+                            proxyService.setBadProxyOnError(proxy, e);
+                            return connectionErrorResult(e, requestId, url, headers, timeout);
+                        })
+                .onErrorResume(throwable -> throwable instanceof ProxyConnectException,
+                        e -> Mono.just(Result.proxyConnectionError(url)));
     }
 
     private Mono<Result> connectionErrorResult(Throwable e, String requestId, String url, Map<String, String> headers, Long timeout) {
+        log.error("Trying to send request with another random proxy. ", e);
+        return getRandomProxy(0L)
+                .hasElement()
+                .flatMap(hasElement -> {
+                    if (hasElement) {
+                        return getRandomProxy(timeout).flatMap(proxy ->
+                                getProxiedWebClientResponse(url, proxy, headers, requestId, timeout));
+                    } else {
+                        return getWebClientResponse(url, headers).delaySubscription(Duration.ofMillis(timeout));
+                    }
+                });
+    }
+
+    private Mono<Result> connectionErrorResultWithLimitedRetries(Throwable e, String requestId, String url,
+                                                                 Map<String, String> headers, Long timeout) {
         log.error("Trying to send request with another random proxy. ", e);
         return retriesRequestService.findByRequestId(requestId)
                 .flatMap(request -> {
