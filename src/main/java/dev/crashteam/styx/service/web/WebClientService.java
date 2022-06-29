@@ -1,15 +1,19 @@
 package dev.crashteam.styx.service.web;
 
+import dev.crashteam.styx.exception.NonValidHttpMethodException;
 import dev.crashteam.styx.model.proxy.ProxyInstance;
+import dev.crashteam.styx.model.web.ProxyRequestParams;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.transport.ProxyProvider;
 
@@ -25,6 +29,52 @@ public class WebClientService {
     private int handlerTimeout;
 
     private final int BUFFER_SIZE = 2 * 1024 * 1024;
+
+    public WebClient.RequestHeadersSpec<?> getProxiedWebclientWithHttpMethod(ProxyRequestParams params, ProxyInstance proxy, Map<String, String> headers) {
+        HttpMethod method = HttpMethod.resolve(params.getHttpMethod());
+        if (method == null) throw new NonValidHttpMethodException(params.getHttpMethod());
+        if (params.getBody() == null) {
+            return WebClient.builder()
+                    .exchangeStrategies(getMaxBufferSize())
+                    .defaultHeaders(getHeadersConsumer(headers))
+                    .baseUrl(params.getUrl())
+                    .clientConnector(getProxiedConnector(proxy))
+                    .build()
+                    .method(method);
+        } else {
+            return WebClient.builder()
+                    .exchangeStrategies(getMaxBufferSize())
+                    .defaultHeaders(getHeadersConsumer(headers))
+                    .baseUrl(params.getUrl())
+                    .clientConnector(getProxiedConnector(proxy))
+                    .build()
+                    .method(method)
+                    .body(Mono.just(params.getBody()), Object.class);
+        }
+
+    }
+
+    public WebClient.RequestHeadersSpec<?> getWebclientWithHttpMethod(ProxyRequestParams params, Map<String, String> headers) {
+        HttpMethod method = HttpMethod.resolve(params.getHttpMethod());
+        if (method == null) throw new NonValidHttpMethodException(params.getHttpMethod());
+        if (params.getBody() == null) {
+            return WebClient.builder()
+                    .exchangeStrategies(getMaxBufferSize())
+                    .defaultHeaders(getHeadersConsumer(headers))
+                    .baseUrl(params.getUrl())
+                    .build()
+                    .method(method);
+        } else {
+            return WebClient.builder()
+                    .exchangeStrategies(getMaxBufferSize())
+                    .defaultHeaders(getHeadersConsumer(headers))
+                    .baseUrl(params.getUrl())
+                    .build()
+                    .method(method)
+                    .body(Mono.just(params.getBody()), Object.class);
+        }
+
+    }
 
     public WebClient getProxiedWebClient(String url, ProxyInstance proxy, Map<String, String> headers) {
         return WebClient.builder()

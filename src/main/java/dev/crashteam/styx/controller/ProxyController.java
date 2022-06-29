@@ -1,18 +1,15 @@
 package dev.crashteam.styx.controller;
 
-import dev.crashteam.styx.model.proxy.ProxyInstance;
+import dev.crashteam.styx.model.web.ProxyRequestParams;
 import dev.crashteam.styx.model.web.Result;
-import dev.crashteam.styx.service.proxy.ExternalSourceProxyService;
 import dev.crashteam.styx.service.web.ConversationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -20,7 +17,6 @@ import java.util.Map;
 public class ProxyController {
 
     private final ConversationService conversationService;
-    private final ExternalSourceProxyService externalSourceProxyService;
 
     @GetMapping("/proxy")
     public Mono<ResponseEntity<Result>> getProxiedResult(@RequestParam("url") String url,
@@ -30,9 +26,10 @@ public class ProxyController {
                 .map(ResponseEntity::ok);
     }
 
-    @PostMapping("/save")
-    public Flux<ResponseEntity<ProxyInstance>> saveProxy(@RequestBody List<ProxyInstance> cachedProxies) {
-        return externalSourceProxyService.saveProxyFromExternalSource(cachedProxies)
+    @PostMapping("/v2/proxy")
+    public Mono<ResponseEntity<Result>> getProxiedResultWithParams(@RequestBody ProxyRequestParams params,
+                                                                   @RequestHeader Map<String, String> headers) {
+        return conversationService.getProxiedResultWithParams(params, headers)
                 .map(ResponseEntity::ok);
     }
 }
