@@ -8,7 +8,8 @@ public enum MessageCode {
     PROXY_REQUEST_ERROR(-3, "Proxy request error"),
     RETRIES_EXHAUSTED_ERROR(-4, "Retries exhausted"),
     NO_ACTIVE_PROXIES_ERROR(-5, "No active proxies left"),
-    PROXY_CONNECTION_EXCEPTION(-6, "Proxy connection exception");
+    PROXY_CONNECTION_EXCEPTION(-6, "Proxy connection exception"),
+    GLOBAL_SERVICE_EXCEPTION(-7, "Proxy service global exception, ask for admin");
 
     private int code;
     private String text;
