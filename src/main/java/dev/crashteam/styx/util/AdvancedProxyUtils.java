@@ -3,6 +3,7 @@ package dev.crashteam.styx.util;
 import dev.crashteam.styx.model.ContextKey;
 import dev.crashteam.styx.model.proxy.ProxyInstance;
 import dev.crashteam.styx.model.web.ProxyRequestParams;
+import org.springframework.util.CollectionUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -13,6 +14,7 @@ import java.util.Random;
 public class AdvancedProxyUtils {
 
     public static boolean contextKeyExists(List<ProxyRequestParams.ContextValue> context, ContextKey contextKey) {
+        if (CollectionUtils.isEmpty(context)) return false;
         return context.stream()
                 .anyMatch(it -> it.getKey().equalsIgnoreCase(contextKey.getValue()));
     }

@@ -17,6 +17,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -24,10 +25,7 @@ import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.transport.ProxyProvider;
 
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Consumer;
 
 @Service
@@ -43,55 +41,40 @@ public class WebClientService {
 
     private final int BUFFER_SIZE = 2 * 1024 * 1024;
 
-    public WebClient.RequestHeadersSpec<?> getProxiedWebclientWithHttpMethod(ProxyRequestParams params, ProxyInstance proxy, Map<String, String> headers) {
+    public WebClient.RequestHeadersSpec<?> getProxiedWebclientWithHttpMethod(ProxyRequestParams params, ProxyInstance proxy) {
         HttpMethod method = HttpMethod.resolve(params.getHttpMethod());
         if (method == null) throw new NonValidHttpMethodException("No such http method - " + params.getHttpMethod());
-        if (!AdvancedProxyUtils.contextKeyExists(params.getContext(), ContextKey.CONTENT)) {
-            return WebClient.builder()
-                    .exchangeStrategies(getMaxBufferSize())
-                    .defaultHeaders(getHeadersConsumerWithPattern(headers))
-                    .baseUrl(params.getUrl())
-                    .clientConnector(getProxiedConnector(proxy))
-                    .build()
-                    .method(method);
+        List<ProxyRequestParams.ContextValue> context = params.getContext();
+        WebClient.RequestBodyUriSpec client = WebClient.builder()
+                .exchangeStrategies(getMaxBufferSize())
+                .defaultHeaders(getHeadersConsumer(getHeaders(context)))
+                .baseUrl(params.getUrl())
+                .clientConnector(getProxiedConnector(proxy))
+                .build()
+                .method(method);
+        if (AdvancedProxyUtils.contextKeyExists(context, ContextKey.CONTENT)) {
+            return getWebclientWithBody(client, context);
         } else {
-            return WebClient.builder()
-                    .exchangeStrategies(getMaxBufferSize())
-                    .defaultHeaders(getHeadersConsumerWithPattern(headers))
-                    .baseUrl(params.getUrl())
-                    .clientConnector(getProxiedConnector(proxy))
-                    .build()
-                    .method(method)
-                    .body(Mono.just(getBody(params.getContext()))
-                            .flatMap(it -> getObjFromJson((String) it)), Object.class);
+            return client;
         }
     }
 
-    public WebClient.RequestHeadersSpec<?> getWebclientWithHttpMethod(ProxyRequestParams params, Map<String, String> headers) {
+    public WebClient.RequestHeadersSpec<?> getWebclientWithHttpMethod(ProxyRequestParams params) {
         HttpMethod method = HttpMethod.resolve(params.getHttpMethod());
         if (method == null) throw new NonValidHttpMethodException("No such http method - " + params.getHttpMethod());
-        if (!AdvancedProxyUtils.contextKeyExists(params.getContext(), ContextKey.CONTENT)) {
-            return WebClient.builder()
-                    .exchangeStrategies(getMaxBufferSize())
-                    .defaultHeaders(getHeadersConsumerWithPattern(headers))
-                    .baseUrl(params.getUrl())
-                    .build()
-                    .method(method);
+        List<ProxyRequestParams.ContextValue> context = params.getContext();
+        WebClient.RequestBodyUriSpec client = WebClient.builder()
+                .exchangeStrategies(getMaxBufferSize())
+                .defaultHeaders(getHeadersConsumer(getHeaders(context)))
+                .baseUrl(params.getUrl())
+                .build()
+                .method(method);
+        if (AdvancedProxyUtils.contextKeyExists(context, ContextKey.CONTENT)) {
+            return getWebclientWithBody(client, context);
         } else {
-            return WebClient.builder()
-                    .exchangeStrategies(getMaxBufferSize())
-                    .defaultHeaders(getHeadersConsumerWithPattern(headers))
-                    .baseUrl(params.getUrl())
-                    .build()
-                    .method(method)
-                    .body(Mono.just(getBody(params.getContext()))
-                            .flatMap(it -> getObjFromJson((String) it)), Object.class);
+            return client;
         }
 
-    }
-
-    private Mono<Object> getObjFromJson(String json) {
-        return Mono.fromCallable(() -> objectMapper.readValue(json, Object.class));
     }
 
     public WebClient getProxiedWebClient(String url, ProxyInstance proxy, Map<String, String> headers) {
@@ -137,6 +120,9 @@ public class WebClientService {
     }
 
     public Map<String, String> getHeaders(List<ProxyRequestParams.ContextValue> context) {
+        if (CollectionUtils.isEmpty(context)) {
+            return Collections.emptyMap();
+        }
         Map<String, String> headers = new HashMap<>();
         var optValue = context.stream()
                 .filter(it -> it.getKey()
@@ -159,19 +145,26 @@ public class WebClientService {
         return (getHeaders(context).get("Content-Type"));
     }
 
-    private Object getBody(List<ProxyRequestParams.ContextValue> context) {
+    private  WebClient.RequestHeadersSpec<?> getWebclientWithBody(WebClient.RequestBodyUriSpec webclient, List<ProxyRequestParams.ContextValue> context) {
         String contentType = getContentType(context);
         if (!StringUtils.hasText(contentType))
             throw new NoContentTypeHeaderException("Specify header for content");
-        var valueOptional = context.stream()
+        Optional<Object> optional = context.stream()
                 .filter(it -> it.getKey().equalsIgnoreCase(ContextKey.CONTENT.getValue()))
                 .map(ProxyRequestParams.ContextValue::getValue)
-                .map(value -> switch (getContentType(context)) {
-                    case MediaType.APPLICATION_JSON_VALUE -> base64toJsonString((String) value);
-                    default -> value;
-                })
                 .findFirst();
-        return valueOptional.orElse("");
+        if (optional.isPresent()) {
+            Object value = formObjectValue(contentType, optional.get());
+            return webclient.body(Mono.just(value), String.class);
+        }
+        return webclient;
+    }
+
+    private Object formObjectValue(String contentType, Object object) {
+        return switch (contentType) {
+            case MediaType.APPLICATION_JSON_VALUE -> (base64toJsonString((String) object));
+            default -> object;
+        };
     }
 
     private String base64toJsonString(String value) {
@@ -188,6 +181,10 @@ public class WebClientService {
                 httpHeaders.add(k.substring(2), v);
             }
         });
+    }
+
+    private Mono<Object> getObjFromJson(String json) {
+        return Mono.fromCallable(() -> objectMapper.readValue(json, Object.class));
     }
 
     private ExchangeStrategies getMaxBufferSize() {

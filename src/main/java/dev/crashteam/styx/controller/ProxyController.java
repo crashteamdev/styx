@@ -30,9 +30,8 @@ public class ProxyController {
     }
 
     @PostMapping("/v2/proxy")
-    public Mono<ResponseEntity<Result>> getProxiedResultWithParams(@RequestBody ProxyRequestParams params,
-                                                                   @RequestHeader Map<String, String> headers) {
-        return advancedConversationService.getProxiedResult(params, headers)
+    public Mono<ResponseEntity<Result>> getProxiedResultWithParams(@RequestBody ProxyRequestParams params) {
+        return advancedConversationService.getProxiedResult(params)
                 .map(ResponseEntity::ok);
     }
 }

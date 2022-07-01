@@ -29,16 +29,16 @@ public class AdvancedConversationService {
     private final WebClientService webClientService;
     private final CachedProxyService proxyService;
 
-    public Mono<Result> getProxiedResult(ProxyRequestParams params, Map<String, String> headers) {
+    public Mono<Result> getProxiedResult(ProxyRequestParams params) {
         Flux<ProxyInstance> active = proxyService.getActive();
         return AdvancedProxyUtils.getRandomProxy(0L, active)
                 .hasElement()
                 .flatMap(hasElement -> {
                     if (hasElement) {
                         return AdvancedProxyUtils.getRandomProxy(params.getTimeout(), active)
-                                .flatMap(proxy -> getProxiedResponse(params, headers, proxy));
+                                .flatMap(proxy -> getProxiedResponse(params, proxy));
                     } else {
-                        return getWebClientResponse(params, headers)
+                        return getWebClientResponse(params)
                                 .delaySubscription(Duration.ofMillis(params.getTimeout()));
                     }
                 })
@@ -50,11 +50,11 @@ public class AdvancedConversationService {
 
     }
 
-    private Mono<Result> getProxiedResponse(ProxyRequestParams params, Map<String, String> headers, ProxyInstance proxy) {
+    private Mono<Result> getProxiedResponse(ProxyRequestParams params, ProxyInstance proxy) {
         log.info("Sending request via proxy - [{}:{}]. URL - {}, HttpMethod - {}. Proxy source - {}, Bad proxy points - {}",
                 proxy.getHost(), proxy.getPort(),
                 params.getUrl(), params.getHttpMethod(), proxy.getProxySource().getValue(), proxy.getBadProxyPoint());
-        return webClientService.getProxiedWebclientWithHttpMethod(params, proxy, headers)
+        return webClientService.getProxiedWebclientWithHttpMethod(params, proxy)
                 .retrieve()
                 .onStatus(httpStatus -> !httpStatus.is2xxSuccessful(), this::getMonoError)
                 .toEntity(Object.class)
@@ -67,7 +67,7 @@ public class AdvancedConversationService {
                 .onErrorResume(throwable -> throwable instanceof ConnectException
                         || throwable instanceof WebClientRequestException, e -> {
                     proxyService.setBadProxyOnError(proxy, e);
-                    return connectionErrorResult(e, params, headers);
+                    return connectionErrorResult(e, params);
                 })
                 .onErrorResume(throwable -> throwable instanceof ProxyGlobalException,
                         e -> Mono.just(Result.proxyServiceGlobalExceptionWithParams(params.getUrl(), params.getHttpMethod(), e.getMessage())))
@@ -76,9 +76,9 @@ public class AdvancedConversationService {
 
     }
 
-    private Mono<Result> getWebClientResponse(ProxyRequestParams params, Map<String, String> headers) {
+    private Mono<Result> getWebClientResponse(ProxyRequestParams params) {
         log.info("No active proxies available, sending request as is on url - [{}]", params.getUrl());
-        return webClientService.getWebclientWithHttpMethod(params, headers)
+        return webClientService.getWebclientWithHttpMethod(params)
                 .retrieve()
                 .onStatus(httpStatus -> !httpStatus.is2xxSuccessful(), this::getMonoError)
                 .toEntity(Object.class)
@@ -96,7 +96,7 @@ public class AdvancedConversationService {
                         });
     }
 
-    private Mono<Result> connectionErrorResult(Throwable e, ProxyRequestParams params, Map<String, String> headers) {
+    private Mono<Result> connectionErrorResult(Throwable e, ProxyRequestParams params) {
         log.error("Trying to send request with another random proxy. ", e);
         Flux<ProxyInstance> active = proxyService.getActive();
         return AdvancedProxyUtils.getRandomProxy(0L, active)
@@ -104,9 +104,9 @@ public class AdvancedConversationService {
                 .flatMap(hasElement -> {
                     if (hasElement) {
                         return AdvancedProxyUtils.getRandomProxy(params.getTimeout(), active).flatMap(proxy ->
-                                getProxiedResponse(params, headers, proxy));
+                                getProxiedResponse(params, proxy));
                     } else {
-                        return getWebClientResponse(params, headers)
+                        return getWebClientResponse(params)
                                 .delaySubscription(Duration.ofMillis(params.getTimeout()));
                     }
                 });
