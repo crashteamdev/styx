@@ -52,7 +52,7 @@ public class ConversationService {
                 .retrieve()
                 .onStatus(httpStatus -> !httpStatus.is2xxSuccessful(), this::getMonoError)
                 .toEntity(Object.class)
-                .map(response -> Result.success(response.getStatusCodeValue(), url, response.getBody()))
+                .map(response -> Result.success(response.getStatusCodeValue(), url, response.getBody(), null))
                 .onErrorResume(throwable -> throwable instanceof OriginalRequestException, e -> {
                     log.error("Request with proxy failed with an error: ", e);
                     final OriginalRequestException requestException = (OriginalRequestException) e;
@@ -114,7 +114,7 @@ public class ConversationService {
                 .retrieve()
                 .onStatus(httpStatus -> !httpStatus.is2xxSuccessful(), this::getMonoError)
                 .toEntity(Object.class)
-                .map(response -> Result.successNoProxy(response.getStatusCodeValue(), url, response.getBody()))
+                .map(response -> Result.successNoProxy(response.getStatusCodeValue(), url, response.getBody(), null))
                 .onErrorResume(Objects::nonNull,
                         e -> {
                             log.error("Request without proxy failed with an error: ", e);

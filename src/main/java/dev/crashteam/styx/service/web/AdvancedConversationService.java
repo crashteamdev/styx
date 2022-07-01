@@ -57,11 +57,13 @@ public class AdvancedConversationService {
                 .retrieve()
                 .onStatus(httpStatus -> !httpStatus.is2xxSuccessful(), this::getMonoError)
                 .toEntity(Object.class)
-                .map(response -> Result.success(response.getStatusCodeValue(), params.getUrl(), response.getBody()))
+                .map(response -> Result.success(response.getStatusCodeValue(), params.getUrl(), response.getBody(),
+                        params.getHttpMethod()))
                 .onErrorResume(throwable -> throwable instanceof OriginalRequestException, e -> {
                     log.error("Request with proxy failed with an error: ", e);
                     final OriginalRequestException requestException = (OriginalRequestException) e;
-                    return Mono.just(Result.proxyError(requestException.getStatusCode(), params.getUrl(), requestException.getBody()));
+                    return Mono.just(Result.proxyError(requestException.getStatusCode(), params.getUrl(),
+                            requestException.getBody()));
                 })
                 .onErrorResume(throwable -> throwable instanceof ConnectException
                         || throwable instanceof WebClientRequestException, e -> {
@@ -69,7 +71,8 @@ public class AdvancedConversationService {
                     return connectionErrorResult(e, params);
                 })
                 .onErrorResume(throwable -> throwable instanceof ProxyGlobalException,
-                        e -> Mono.just(Result.proxyServiceGlobalExceptionWithParams(params.getUrl(), params.getHttpMethod(), e.getMessage())))
+                        e -> Mono.just(Result.proxyServiceGlobalExceptionWithParams(params.getUrl(), params.getHttpMethod(),
+                                e.getMessage())))
                 .onErrorResume(throwable -> throwable instanceof ProxyConnectException,
                         e -> Mono.just(Result.proxyConnectionError(params.getUrl())));
 
@@ -81,14 +84,17 @@ public class AdvancedConversationService {
                 .retrieve()
                 .onStatus(httpStatus -> !httpStatus.is2xxSuccessful(), this::getMonoError)
                 .toEntity(Object.class)
-                .map(response -> Result.successNoProxy(response.getStatusCodeValue(), params.getUrl(), response.getBody()))
+                .map(response -> Result.successNoProxy(response.getStatusCodeValue(), params.getUrl(), response.getBody(),
+                        params.getHttpMethod()))
                 .onErrorResume(throwable -> throwable instanceof ProxyGlobalException,
-                        e -> Mono.just(Result.proxyServiceGlobalExceptionWithParams(params.getUrl(), params.getHttpMethod(), e.getMessage())))
+                        e -> Mono.just(Result.proxyServiceGlobalExceptionWithParams(params.getUrl(), params.getHttpMethod(),
+                                e.getMessage())))
                 .onErrorResume(Objects::nonNull,
                         e -> {
                             log.error("Request without proxy failed with an error: ", e);
                             if (e instanceof OriginalRequestException requestException) {
-                                return Mono.just(Result.unknownError(requestException.getStatusCode(), params.getUrl(), requestException.getBody()));
+                                return Mono.just(Result.unknownError(requestException.getStatusCode(), params.getUrl(),
+                                        requestException.getBody()));
                             } else {
                                 return Mono.just(Result.unknownError(500, params.getUrl(), e.getMessage()));
                             }
@@ -117,7 +123,8 @@ public class AdvancedConversationService {
                     log.error("Unknown error", e);
                     return Mono.error(new ProxyGlobalException(e.getMessage(), e));
                 })
-                .flatMap(body -> Mono.error(new OriginalRequestException("Proxy request error", body, response.rawStatusCode())));
+                .flatMap(body -> Mono.error(new OriginalRequestException("Proxy request error", body,
+                        response.rawStatusCode())));
 
     }
 }

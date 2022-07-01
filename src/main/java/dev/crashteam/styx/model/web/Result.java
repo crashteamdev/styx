@@ -33,12 +33,12 @@ public class Result {
         this.httpMethod = httpMethod;
     }
 
-    public static Result success(int originalStatus, String url, Object body) {
-        return new Result(MessageCode.SUCCESS.getCode(), originalStatus, null, url, body);
+    public static Result success(int originalStatus, String url, Object body, String httpMethod) {
+        return new Result(MessageCode.SUCCESS.getCode(), originalStatus, null, url, body, httpMethod);
     }
 
-    public static Result successNoProxy(int originalStatus, String url, Object body) {
-        return new Result(MessageCode.REQUEST_WITHOUT_PROXY_SUCCESS.getCode(), originalStatus, null, url, body);
+    public static Result successNoProxy(int originalStatus, String url, Object body, String httpMethod) {
+        return new Result(MessageCode.REQUEST_WITHOUT_PROXY_SUCCESS.getCode(), originalStatus, null, url, body, httpMethod);
     }
 
     public static Result proxyError(int originalStatus, String url, Object body) {
