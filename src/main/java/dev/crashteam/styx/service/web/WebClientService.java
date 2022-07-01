@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.crashteam.styx.exception.NoContentTypeHeaderException;
 import dev.crashteam.styx.exception.NonValidHttpMethodException;
 import dev.crashteam.styx.model.ContextKey;
+import dev.crashteam.styx.model.content.BaseResolver;
 import dev.crashteam.styx.model.proxy.ProxyInstance;
 import dev.crashteam.styx.model.web.ProxyRequestParams;
 import dev.crashteam.styx.util.AdvancedProxyUtils;
@@ -38,6 +39,7 @@ public class WebClientService {
     private int handlerTimeout;
 
     private final ObjectMapper objectMapper;
+    private final List<BaseResolver> resolvers;
 
     private final int BUFFER_SIZE = 2 * 1024 * 1024;
 
@@ -154,7 +156,7 @@ public class WebClientService {
                 .map(ProxyRequestParams.ContextValue::getValue)
                 .findFirst();
         if (optional.isPresent()) {
-            Object value = formObjectValue(contentType, optional.get());
+            Object value = AdvancedProxyUtils.getObjectValueByContentType(resolvers, optional.get(), contentType);
             return webclient.body(Mono.just(value), String.class);
         }
         return webclient;
