@@ -2,12 +2,12 @@ package dev.crashteam.styx.model.content;
 
 import lombok.Data;
 import org.springframework.http.MediaType;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 import java.util.Base64;
 
 @Data
-@Service
+@Component
 public class JsonValueResolver extends BaseResolver {
 
     public JsonValueResolver() {

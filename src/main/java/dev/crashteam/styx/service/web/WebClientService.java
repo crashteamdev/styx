@@ -147,7 +147,7 @@ public class WebClientService {
         return (getHeaders(context).get("Content-Type"));
     }
 
-    private  WebClient.RequestHeadersSpec<?> getWebclientWithBody(WebClient.RequestBodyUriSpec webclient, List<ProxyRequestParams.ContextValue> context) {
+    private WebClient.RequestHeadersSpec<?> getWebclientWithBody(WebClient.RequestBodyUriSpec webclient, List<ProxyRequestParams.ContextValue> context) {
         String contentType = getContentType(context);
         if (!StringUtils.hasText(contentType))
             throw new NoContentTypeHeaderException("Specify header for content");
