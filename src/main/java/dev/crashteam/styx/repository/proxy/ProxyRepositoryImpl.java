@@ -10,6 +10,8 @@ import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Map;
+
 @Repository
 public class ProxyRepositoryImpl implements ProxyRepository {
 
@@ -35,7 +37,7 @@ public class ProxyRepositoryImpl implements ProxyRepository {
 
     @Override
     public <S extends ProxyInstance> Mono<S> save(S entity) {
-        return hashOperations.put(RedisKey.PROXY_KEY.getValue(), getRedisHashKey(entity), entity)
+        return hashOperations.putIfAbsent(RedisKey.PROXY_KEY.getValue(), getRedisHashKey(entity), entity)
                 .thenReturn(entity);
     }
 
@@ -49,6 +51,12 @@ public class ProxyRepositoryImpl implements ProxyRepository {
     public <S extends ProxyInstance> Flux<S> saveAll(Publisher<S> entityStream) {
         return Flux.from(entityStream)
                 .flatMap(this::save);
+    }
+
+    public Mono<ProxyInstance> getRandomProxy() {
+        return hashOperations
+                .randomEntry(RedisKey.PROXY_KEY.getValue())
+                .map(Map.Entry::getValue);
     }
 
     @Override
@@ -84,6 +92,10 @@ public class ProxyRepositoryImpl implements ProxyRepository {
     @Override
     public Mono<Long> count() {
         return null;
+    }
+
+    public Mono<Long> deleteByHashKey(ProxyInstance proxy) {
+        return hashOperations.remove(RedisKey.PROXY_KEY.getValue(), getRedisHashKey(proxy));
     }
 
     @Override

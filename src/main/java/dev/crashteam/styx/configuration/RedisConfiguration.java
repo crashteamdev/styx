@@ -4,9 +4,12 @@ package dev.crashteam.styx.configuration;
 import dev.crashteam.styx.model.proxy.ProxyInstance;
 import dev.crashteam.styx.model.request.RetriesRequest;
 import lombok.RequiredArgsConstructor;
+import net.javacrumbs.shedlock.core.LockProvider;
+import net.javacrumbs.shedlock.provider.redis.spring.ReactiveRedisLockProvider;
 import org.springframework.boot.autoconfigure.data.redis.LettuceClientConfigurationBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.ReactiveRedisOperations;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
@@ -46,6 +49,12 @@ public class RedisConfiguration {
     @Bean
     public LettuceClientConfigurationBuilderCustomizer builderCustomizer() {
         return clientConfigurationBuilder -> clientConfigurationBuilder.useSsl().disablePeerVerification();
+    }
+
+    @Bean
+    public LockProvider lockProvider(ReactiveRedisConnectionFactory connectionFactory) {
+        return new ReactiveRedisLockProvider.Builder(connectionFactory)
+                .build();
     }
 
 }

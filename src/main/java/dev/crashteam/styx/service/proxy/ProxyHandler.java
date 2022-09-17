@@ -4,6 +4,7 @@ import dev.crashteam.styx.model.proxy.ProxyInstance;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -18,8 +19,7 @@ public class ProxyHandler {
     private final List<ProxyProvider> proxyProviders;
     private final CachedProxyService proxyService;
 
-    @Async
-    //@Scheduled(cron = "${application.redis.cache-cron}")
+    @Scheduled(cron = "${application.redis.cache-cron}")
     @PostConstruct
     public void fillRedisCache() {
         final Flux<ProxyInstance> defaultProxyFlux = Flux.fromIterable(proxyProviders)

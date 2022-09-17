@@ -41,4 +41,4 @@ app:
 
 application:
   redis:
-    cache-cron: 0 0 6 * * ?
+    cache-cron: 0 0/15 * * * ?

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.List;
 
 @Service
@@ -25,6 +26,16 @@ public class CachedProxyService {
 
     public Flux<ProxyInstance> getAll() {
         return proxyRepository.findAll();
+    }
+
+    public Mono<Long> deleteByHashKey(ProxyInstance proxy) {
+        log.info("Deleting proxy [{}, {}] with values - Active: {}. Bad proxy points: {}", proxy.getHost(), proxy.getPort(),
+                proxy.getActive(), proxy.getBadProxyPoint());
+        return proxyRepository.deleteByHashKey(proxy);
+    }
+
+    public Mono<ProxyInstance> getRandomProxy(Long timeout) {
+        return proxyRepository.getRandomProxy().delaySubscription(Duration.ofMillis(timeout));
     }
 
     public Mono<ProxyInstance> save(ProxyInstance proxy) {
@@ -45,6 +56,8 @@ public class CachedProxyService {
         proxy.setBadProxyPoint(proxy.getBadProxyPoint() + 1);
         if (proxy.getBadProxyPoint() == 3) {
             proxy.setActive(false);
+            this.deleteByHashKey(proxy).subscribe();
+            return;
         }
         this.save(proxy).subscribe();
         log.error("Proxy - [{}:{}] marked as unstable", proxy.getHost(), proxy.getPort(), ex);
