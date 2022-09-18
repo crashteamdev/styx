@@ -40,5 +40,7 @@ app:
       url: https://panel.proxyline.net/api/
 
 application:
-  redis:
-    cache-cron: 0 0 6 * * ?
+  scheduler:
+    lockAtMost: 15m
+    redis:
+      cache-cron: 0 0/15 * * * ?

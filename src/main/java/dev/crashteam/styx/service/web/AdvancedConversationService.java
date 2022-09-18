@@ -30,12 +30,11 @@ public class AdvancedConversationService {
     private final CachedProxyService proxyService;
 
     public Mono<Result> getProxiedResult(ProxyRequestParams params) {
-        Flux<ProxyInstance> active = proxyService.getActive();
-        return AdvancedProxyUtils.getRandomProxy(0L, active)
+        return proxyService.getRandomProxy(0L)
                 .hasElement()
                 .flatMap(hasElement -> {
                     if (hasElement) {
-                        return AdvancedProxyUtils.getRandomProxy(params.getTimeout(), active)
+                        return proxyService.getRandomProxy(params.getTimeout())
                                 .flatMap(proxy -> getProxiedResponse(params, proxy));
                     } else {
                         return getWebClientResponse(params)
@@ -101,12 +100,11 @@ public class AdvancedConversationService {
 
     private Mono<Result> connectionErrorResult(Throwable e, ProxyRequestParams params) {
         log.error("Trying to send request with another random proxy. ", e);
-        Flux<ProxyInstance> active = proxyService.getActive();
-        return AdvancedProxyUtils.getRandomProxy(0L, active)
+        return proxyService.getRandomProxy(0L)
                 .hasElement()
                 .flatMap(hasElement -> {
                     if (hasElement) {
-                        return AdvancedProxyUtils.getRandomProxy(params.getTimeout(), active).flatMap(proxy ->
+                        return proxyService.getRandomProxy(params.getTimeout()).flatMap(proxy ->
                                 getProxiedResponse(params, proxy));
                     } else {
                         return getWebClientResponse(params)
