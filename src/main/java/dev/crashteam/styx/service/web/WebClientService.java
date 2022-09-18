@@ -1,6 +1,7 @@
 package dev.crashteam.styx.service.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.crashteam.styx.exception.HeadersParseException;
 import dev.crashteam.styx.exception.NoContentTypeHeaderException;
 import dev.crashteam.styx.exception.NonValidHttpMethodException;
 import dev.crashteam.styx.model.ContextKey;
@@ -131,15 +132,14 @@ public class WebClientService {
                         .equalsIgnoreCase(ContextKey.HEADERS.getValue()))
                 .map(ProxyRequestParams.ContextValue::getValue)
                 .findFirst();
-        optValue.ifPresent(value -> {
-            Mono.fromCallable(() -> {
-                        final String json = objectMapper.writeValueAsString(value);
-                        final Map map = objectMapper.readValue(json, Map.class);
-                        headers.putAll(map);
-                        return map;
-                    }
-            ).subscribe();
-        });
+        if (optValue.isPresent()) {
+            try {
+                Map<String, String> map = (Map<String, String>) optValue.get();
+                headers.putAll(map);
+            } catch (Exception e) {
+                throw new HeadersParseException(e.getMessage(), e.getCause());
+            }
+        }
         return headers;
     }
 
@@ -162,13 +162,6 @@ public class WebClientService {
         return webclient;
     }
 
-    private Object formObjectValue(String contentType, Object object) {
-        return switch (contentType) {
-            case MediaType.APPLICATION_JSON_VALUE -> (base64toJsonString((String) object));
-            default -> object;
-        };
-    }
-
     private String base64toJsonString(String value) {
         return new String(Base64.getDecoder().decode(value));
     }
@@ -183,10 +176,6 @@ public class WebClientService {
                 httpHeaders.add(k.substring(2), v);
             }
         });
-    }
-
-    private Mono<Object> getObjFromJson(String json) {
-        return Mono.fromCallable(() -> objectMapper.readValue(json, Object.class));
     }
 
     private ExchangeStrategies getMaxBufferSize() {
