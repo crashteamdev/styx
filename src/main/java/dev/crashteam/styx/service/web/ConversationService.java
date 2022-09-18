@@ -3,6 +3,7 @@ package dev.crashteam.styx.service.web;
 import dev.crashteam.styx.exception.OriginalRequestException;
 import dev.crashteam.styx.exception.ProxyGlobalException;
 import dev.crashteam.styx.model.proxy.ProxyInstance;
+import dev.crashteam.styx.model.web.ErrorResult;
 import dev.crashteam.styx.model.web.ProxyRequestParams;
 import dev.crashteam.styx.model.web.Result;
 import dev.crashteam.styx.service.proxy.CachedProxyService;
@@ -27,7 +28,6 @@ import java.util.Random;
 public class ConversationService {
 
     private final CachedProxyService proxyService;
-    private final RetriesRequestService retriesRequestService;
     private final WebClientService webClientService;
 
     public Mono<Result> getProxiedResponse(String url, Map<String, String> headers, Long timeout) {
@@ -56,7 +56,8 @@ public class ConversationService {
                 .onErrorResume(throwable -> throwable instanceof OriginalRequestException, e -> {
                     log.error("Request with proxy failed with an error: ", e);
                     final OriginalRequestException requestException = (OriginalRequestException) e;
-                    return Mono.just(Result.proxyError(requestException.getStatusCode(), url, requestException.getBody()));
+                    return Mono.just(ErrorResult.originalRequestError(requestException.getStatusCode(), url,
+                            e, requestException.getBody()));
                 })
                 .onErrorResume(throwable -> throwable instanceof ConnectException
                         || throwable instanceof WebClientRequestException, e -> {
@@ -64,7 +65,7 @@ public class ConversationService {
                     return connectionErrorResult(e, url, headers, timeout);
                 })
                 .onErrorResume(throwable -> throwable instanceof ProxyConnectException,
-                        e -> Mono.just(Result.proxyConnectionError(url)));
+                        e -> Mono.just(ErrorResult.proxyConnectionError(url, e)));
     }
 
 
@@ -82,31 +83,6 @@ public class ConversationService {
                 });
     }
 
-    private Mono<Result> connectionErrorResultWithLimitedRetries(Throwable e, String requestId, String url,
-                                                                 Map<String, String> headers, Long timeout) {
-        log.error("Trying to send request with another random proxy. ", e);
-        return retriesRequestService.findByRequestId(requestId)
-                .flatMap(request -> {
-                    request.setRetries(request.getRetries() - 1);
-                    return retriesRequestService.save(request);
-                })
-                .flatMap(request -> {
-                    if (request.getRetries() > 0) {
-                        return getRandomProxy(0L)
-                                .hasElement()
-                                .flatMap(hasElement -> {
-                                    if (hasElement) {
-                                        return getRandomProxy(timeout).flatMap(p -> getProxiedWebClientResponse(url, p, headers, timeout));
-                                    } else {
-                                        return Mono.just(Result.noActiveProxyError(url));
-                                    }
-                                });
-                    } else {
-                        return Mono.just(Result.exhaustedRetriesProxyError(url));
-                    }
-                });
-    }
-
     private Mono<Result> getWebClientResponse(String url, Map<String, String> headers) {
         log.info("No active proxies available, sending request as is on url - [{}]", url);
         return webClientService.getWebClient(url, headers)
@@ -118,12 +94,14 @@ public class ConversationService {
                 .onErrorResume(Objects::nonNull,
                         e -> {
                             log.error("Request without proxy failed with an error: ", e);
-                            OriginalRequestException requestException = (OriginalRequestException) e;
-                            return Mono.just(Result.unknownError(requestException.getStatusCode(), url, requestException.getBody()));
+                            if (e instanceof OriginalRequestException requestException) {
+                                return Mono.just(ErrorResult.originalRequestError(requestException.getStatusCode(),
+                                        url, requestException, requestException.getBody()));
+                            } else {
+                                return Mono.just(ErrorResult.unknownError(url, e));
+                            }
                         });
     }
-
-
 
     private Mono<ProxyInstance> getRandomProxy(Long timeout) {
         Random random = new Random();
@@ -145,8 +123,13 @@ public class ConversationService {
     }
 
     private Mono<? extends Throwable> getMonoError(ClientResponse response) {
-        return response.bodyToMono(Object.class)
-                .flatMap(body -> Mono.error(new OriginalRequestException("Proxy request error", body, response.rawStatusCode())));
+        return response.bodyToMono(String.class)
+                .onErrorResume(Objects::nonNull, e -> {
+                    log.error("Unknown error", e);
+                    return Mono.error(new ProxyGlobalException(e.getMessage(), e));
+                })
+                .flatMap(body -> Mono.error(new OriginalRequestException("Proxy request error", body,
+                        response.rawStatusCode())));
 
     }
 }
