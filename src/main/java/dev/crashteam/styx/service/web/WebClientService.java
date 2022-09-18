@@ -1,6 +1,5 @@
 package dev.crashteam.styx.service.web;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.crashteam.styx.exception.HeadersParseException;
 import dev.crashteam.styx.exception.NoContentTypeHeaderException;
 import dev.crashteam.styx.exception.NonValidHttpMethodException;
@@ -16,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -39,7 +37,6 @@ public class WebClientService {
     @Value("${app.timeout-handler}")
     private int handlerTimeout;
 
-    private final ObjectMapper objectMapper;
     private final List<BaseResolver> resolvers;
 
     private final int BUFFER_SIZE = 2 * 1024 * 1024;
@@ -122,6 +119,7 @@ public class WebClientService {
         return new ReactorClientHttpConnector(httpClient);
     }
 
+    @SuppressWarnings("unchecked")
     public Map<String, String> getHeaders(List<ProxyRequestParams.ContextValue> context) {
         if (CollectionUtils.isEmpty(context)) {
             return Collections.emptyMap();
@@ -162,9 +160,6 @@ public class WebClientService {
         return webclient;
     }
 
-    private String base64toJsonString(String value) {
-        return new String(Base64.getDecoder().decode(value));
-    }
 
     private Consumer<HttpHeaders> getHeadersConsumer(Map<String, String> headers) {
         return httpHeaders -> headers.forEach(httpHeaders::add);

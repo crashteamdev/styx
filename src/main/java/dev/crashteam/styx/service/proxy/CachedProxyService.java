@@ -24,10 +24,6 @@ public class CachedProxyService {
         return proxyRepository.findActive();
     }
 
-    public Flux<ProxyInstance> getAll() {
-        return proxyRepository.findAll();
-    }
-
     public Mono<Long> deleteByHashKey(ProxyInstance proxy) {
         log.info("Deleting proxy [{}, {}] with values - Active: {}. Bad proxy points: {}", proxy.getHost(), proxy.getPort(),
                 proxy.getActive(), proxy.getBadProxyPoint());
@@ -54,7 +50,7 @@ public class CachedProxyService {
 
     public void setBadProxyOnError(ProxyInstance proxy, Throwable ex) {
         proxy.setBadProxyPoint(proxy.getBadProxyPoint() + 1);
-        if (proxy.getBadProxyPoint() == 3) {
+        if (proxy.getBadProxyPoint() == 2) {
             proxy.setActive(false);
             this.deleteByHashKey(proxy).subscribe();
             return;
