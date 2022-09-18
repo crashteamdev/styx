@@ -7,14 +7,13 @@ import dev.crashteam.styx.model.web.ErrorResult;
 import dev.crashteam.styx.model.web.ProxyRequestParams;
 import dev.crashteam.styx.model.web.Result;
 import dev.crashteam.styx.service.proxy.CachedProxyService;
-import dev.crashteam.styx.util.AdvancedProxyUtils;
 import io.netty.handler.proxy.ProxyConnectException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.UnsupportedMediaTypeException;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.net.ConnectException;
@@ -66,6 +65,9 @@ public class AdvancedConversationService {
                 })
                 .onErrorResume(throwable -> throwable instanceof ConnectException
                         || throwable instanceof WebClientRequestException, e -> {
+                    if (e.getCause() instanceof UnsupportedMediaTypeException) {
+                        return  Mono.just(ErrorResult.unknownError(params.getUrl(), e));
+                    }
                     proxyService.setBadProxyOnError(proxy, e);
                     return connectionErrorResult(e, params);
                 })
