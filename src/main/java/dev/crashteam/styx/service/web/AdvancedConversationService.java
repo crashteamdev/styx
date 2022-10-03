@@ -8,6 +8,7 @@ import dev.crashteam.styx.model.web.ProxyRequestParams;
 import dev.crashteam.styx.model.web.Result;
 import dev.crashteam.styx.service.proxy.CachedProxyService;
 import io.netty.handler.proxy.ProxyConnectException;
+import io.netty.handler.ssl.SslHandshakeTimeoutException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -64,7 +65,8 @@ public class AdvancedConversationService {
                             e, requestException.getBody()));
                 })
                 .onErrorResume(throwable -> throwable instanceof ConnectException
-                        || throwable instanceof WebClientRequestException, e -> {
+                        || throwable instanceof WebClientRequestException
+                        || throwable instanceof SslHandshakeTimeoutException, e -> {
                     if (e.getCause() instanceof UnsupportedMediaTypeException) {
                         return  Mono.just(ErrorResult.unknownError(params.getUrl(), e));
                     }
