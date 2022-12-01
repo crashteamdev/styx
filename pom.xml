@@ -15,7 +15,7 @@
         <server.port>8022</server.port>
         <management.port>8023</management.port>
         <exposed.ports>${server.port} ${management.port}</exposed.ports>
-        <shedlock-provider-redis-spring.version>4.41.0</shedlock-provider-redis-spring.version>
+        <shedlock-provider-redis-spring.version>4.42.0</shedlock-provider-redis-spring.version>
         <shedlock-spring.version>4.41.0</shedlock-spring.version>
     </properties>
     <dependencies>
