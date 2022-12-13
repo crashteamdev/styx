@@ -24,10 +24,9 @@ public class CachedProxyService {
         return proxyRepository.findActive();
     }
 
-    public Mono<Long> deleteByHashKey(ProxyInstance proxy) {
-        log.info("Deleting proxy [{}, {}] with values - Active: {}. Bad proxy points: {}", proxy.getHost(), proxy.getPort(),
-                proxy.getActive(), proxy.getBadProxyPoint());
-        return proxyRepository.deleteByHashKey(proxy);
+    public void deleteByHashKey(ProxyInstance proxy) {
+        log.info("Deleting unstable proxy [{}:{}]", proxy.getHost(), proxy.getPort());
+        proxyRepository.deleteByHashKey(proxy).subscribe();
     }
 
     public Mono<ProxyInstance> getRandomProxy(Long timeout) {
@@ -35,7 +34,7 @@ public class CachedProxyService {
     }
 
     public Mono<ProxyInstance> save(ProxyInstance proxy) {
-        log.info("Saving proxy [{}, {}] with values - Active: {}. Bad proxy points: {}", proxy.getHost(), proxy.getPort(),
+        log.info("Saving proxy [{}:{}] with values - Active: {}. Bad proxy points: {}", proxy.getHost(), proxy.getPort(),
                 proxy.getActive(), proxy.getBadProxyPoint());
         return proxyRepository.save(proxy);
     }
@@ -52,7 +51,7 @@ public class CachedProxyService {
         proxy.setBadProxyPoint(proxy.getBadProxyPoint() + 1);
         if (proxy.getBadProxyPoint() == 2) {
             proxy.setActive(false);
-            this.deleteByHashKey(proxy).subscribe();
+            this.deleteByHashKey(proxy);
             return;
         }
         this.save(proxy).subscribe();

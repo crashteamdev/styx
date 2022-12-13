@@ -70,7 +70,8 @@ public class AdvancedConversationService {
                     if (e.getCause() instanceof UnsupportedMediaTypeException) {
                         return  Mono.just(ErrorResult.unknownError(params.getUrl(), e));
                     }
-                    proxyService.setBadProxyOnError(proxy, e);
+                    proxyService.deleteByHashKey(proxy);
+                    log.error(e.getMessage());
                     return connectionErrorResult(e, params);
                 })
                 .onErrorResume(throwable -> throwable instanceof ProxyGlobalException,
@@ -103,7 +104,7 @@ public class AdvancedConversationService {
     }
 
     private Mono<Result> connectionErrorResult(Throwable e, ProxyRequestParams params) {
-        log.error("Trying to send request with another random proxy. ", e);
+        log.error("Trying to send request with another random proxy. Exception - " + e.getMessage());
         return proxyService.getRandomProxy(0L)
                 .hasElement()
                 .flatMap(hasElement -> {
