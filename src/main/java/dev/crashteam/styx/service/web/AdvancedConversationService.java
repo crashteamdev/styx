@@ -64,9 +64,10 @@ public class AdvancedConversationService {
                     return Mono.just(ErrorResult.originalRequestError(requestException.getStatusCode(), params.getUrl(),
                             e, requestException.getBody()));
                 })
-                .onErrorResume(throwable -> throwable instanceof ConnectException
+                .onErrorResume(throwable -> (throwable instanceof ConnectException
                         || throwable instanceof WebClientRequestException
-                        || throwable instanceof SslHandshakeTimeoutException, e -> {
+                        || throwable instanceof SslHandshakeTimeoutException) && !(throwable.getCause() != null
+                        && throwable.getCause() instanceof ProxyConnectException), e -> {
                     if (e.getCause() instanceof UnsupportedMediaTypeException) {
                         return  Mono.just(ErrorResult.unknownError(params.getUrl(), e));
                     }
