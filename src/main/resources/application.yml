@@ -43,4 +43,4 @@ application:
   scheduler:
     lockAtMost: 15m
     redis:
-      cache-cron: 0 0/15 * * * ?
+      cache-cron: 0 0/5 * * * ?

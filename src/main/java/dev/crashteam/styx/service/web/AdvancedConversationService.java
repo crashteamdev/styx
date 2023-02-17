@@ -7,19 +7,18 @@ import dev.crashteam.styx.model.web.ErrorResult;
 import dev.crashteam.styx.model.web.ProxyRequestParams;
 import dev.crashteam.styx.model.web.Result;
 import dev.crashteam.styx.service.proxy.CachedProxyService;
+import dev.crashteam.styx.util.AdvancedProxyUtils;
 import io.netty.handler.proxy.ProxyConnectException;
-import io.netty.handler.ssl.SslHandshakeTimeoutException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.UnsupportedMediaTypeException;
 import org.springframework.web.reactive.function.client.ClientResponse;
-import org.springframework.web.reactive.function.client.WebClientRequestException;
 import reactor.core.publisher.Mono;
 
-import java.net.ConnectException;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -64,15 +63,12 @@ public class AdvancedConversationService {
                     return Mono.just(ErrorResult.originalRequestError(requestException.getStatusCode(), params.getUrl(),
                             e, requestException.getBody()));
                 })
-                .onErrorResume(throwable -> (throwable instanceof ConnectException
-                        || throwable instanceof WebClientRequestException
-                        || throwable instanceof SslHandshakeTimeoutException) && !(throwable.getCause() != null
-                        && throwable.getCause() instanceof ProxyConnectException), e -> {
+                .onErrorResume(AdvancedProxyUtils::badProxyError, e -> {
                     if (e.getCause() instanceof UnsupportedMediaTypeException) {
-                        return  Mono.just(ErrorResult.unknownError(params.getUrl(), e));
+                        return Mono.just(ErrorResult.unknownError(params.getUrl(), e));
                     }
                     proxyService.deleteByHashKey(proxy);
-                    log.error(e.getMessage());
+                    log.error("PROXY ERROR ", Optional.ofNullable(e.getCause()).orElse(e));
                     return connectionErrorResult(e, params);
                 })
                 .onErrorResume(throwable -> throwable instanceof ProxyGlobalException,

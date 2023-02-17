@@ -25,7 +25,7 @@ public class CachedProxyService {
     }
 
     public void deleteByHashKey(ProxyInstance proxy) {
-        log.info("Deleting unstable proxy [{}:{}]", proxy.getHost(), proxy.getPort());
+        log.warn("Deleting unstable proxy [{}:{}]", proxy.getHost(), proxy.getPort());
         proxyRepository.deleteByHashKey(proxy).subscribe();
     }
 
@@ -55,6 +55,6 @@ public class CachedProxyService {
             return;
         }
         this.save(proxy).subscribe();
-        log.error("Proxy - [{}:{}] marked as unstable", proxy.getHost(), proxy.getPort(), ex);
+        log.warn("Proxy - [{}:{}] marked as unstable", proxy.getHost(), proxy.getPort(), ex);
     }
 }
