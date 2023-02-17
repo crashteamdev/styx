@@ -3,17 +3,18 @@ package dev.crashteam.styx.service.web;
 import dev.crashteam.styx.exception.OriginalRequestException;
 import dev.crashteam.styx.exception.ProxyGlobalException;
 import dev.crashteam.styx.model.proxy.ProxyInstance;
+import dev.crashteam.styx.model.web.ErrorResult;
 import dev.crashteam.styx.model.web.ProxyRequestParams;
 import dev.crashteam.styx.model.web.Result;
 import dev.crashteam.styx.service.proxy.CachedProxyService;
-import dev.crashteam.styx.util.AdvancedProxyUtils;
 import io.netty.handler.proxy.ProxyConnectException;
+import io.netty.handler.ssl.SslHandshakeTimeoutException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.UnsupportedMediaTypeException;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.net.ConnectException;
@@ -29,12 +30,11 @@ public class AdvancedConversationService {
     private final CachedProxyService proxyService;
 
     public Mono<Result> getProxiedResult(ProxyRequestParams params) {
-        Flux<ProxyInstance> active = proxyService.getActive();
-        return AdvancedProxyUtils.getRandomProxy(0L, active)
+        return proxyService.getRandomProxy(0L)
                 .hasElement()
                 .flatMap(hasElement -> {
                     if (hasElement) {
-                        return AdvancedProxyUtils.getRandomProxy(params.getTimeout(), active)
+                        return proxyService.getRandomProxy(params.getTimeout())
                                 .flatMap(proxy -> getProxiedResponse(params, proxy));
                     } else {
                         return getWebClientResponse(params)
@@ -43,8 +43,7 @@ public class AdvancedConversationService {
                 })
                 .onErrorResume(Objects::nonNull, e -> {
                     log.error("Unknown error", e);
-                    return Mono.just(Result.proxyServiceGlobalExceptionWithParams(params.getUrl(),
-                            params.getHttpMethod(), e.getMessage()));
+                    return Mono.just(ErrorResult.unknownError(params.getUrl(), e));
                 });
 
     }
@@ -62,19 +61,24 @@ public class AdvancedConversationService {
                 .onErrorResume(throwable -> throwable instanceof OriginalRequestException, e -> {
                     log.error("Request with proxy failed with an error: ", e);
                     final OriginalRequestException requestException = (OriginalRequestException) e;
-                    return Mono.just(Result.proxyError(requestException.getStatusCode(), params.getUrl(),
-                            requestException.getBody()));
+                    return Mono.just(ErrorResult.originalRequestError(requestException.getStatusCode(), params.getUrl(),
+                            e, requestException.getBody()));
                 })
-                .onErrorResume(throwable -> throwable instanceof ConnectException
-                        || throwable instanceof WebClientRequestException, e -> {
-                    proxyService.setBadProxyOnError(proxy, e);
+                .onErrorResume(throwable -> (throwable instanceof ConnectException
+                        || throwable instanceof WebClientRequestException
+                        || throwable instanceof SslHandshakeTimeoutException) && !(throwable.getCause() != null
+                        && throwable.getCause() instanceof ProxyConnectException), e -> {
+                    if (e.getCause() instanceof UnsupportedMediaTypeException) {
+                        return  Mono.just(ErrorResult.unknownError(params.getUrl(), e));
+                    }
+                    proxyService.deleteByHashKey(proxy);
+                    log.error(e.getMessage());
                     return connectionErrorResult(e, params);
                 })
                 .onErrorResume(throwable -> throwable instanceof ProxyGlobalException,
-                        e -> Mono.just(Result.proxyServiceGlobalExceptionWithParams(params.getUrl(), params.getHttpMethod(),
-                                e.getMessage())))
+                        e -> Mono.just(ErrorResult.unknownError(params.getUrl(), e)))
                 .onErrorResume(throwable -> throwable instanceof ProxyConnectException,
-                        e -> Mono.just(Result.proxyConnectionError(params.getUrl())));
+                        e -> Mono.just(ErrorResult.proxyConnectionError(params.getUrl(), e)));
 
     }
 
@@ -87,28 +91,26 @@ public class AdvancedConversationService {
                 .map(response -> Result.successNoProxy(response.getStatusCodeValue(), params.getUrl(), response.getBody(),
                         params.getHttpMethod()))
                 .onErrorResume(throwable -> throwable instanceof ProxyGlobalException,
-                        e -> Mono.just(Result.proxyServiceGlobalExceptionWithParams(params.getUrl(), params.getHttpMethod(),
-                                e.getMessage())))
+                        e -> Mono.just(ErrorResult.unknownError(params.getUrl(), e)))
                 .onErrorResume(Objects::nonNull,
                         e -> {
                             log.error("Request without proxy failed with an error: ", e);
                             if (e instanceof OriginalRequestException requestException) {
-                                return Mono.just(Result.unknownError(requestException.getStatusCode(), params.getUrl(),
-                                        requestException.getBody()));
+                                return Mono.just(ErrorResult.originalRequestError(requestException.getStatusCode(),
+                                        params.getUrl(), requestException, requestException.getBody()));
                             } else {
-                                return Mono.just(Result.unknownError(500, params.getUrl(), e.getMessage()));
+                                return Mono.just(ErrorResult.unknownError(params.getUrl(), e));
                             }
                         });
     }
 
     private Mono<Result> connectionErrorResult(Throwable e, ProxyRequestParams params) {
-        log.error("Trying to send request with another random proxy. ", e);
-        Flux<ProxyInstance> active = proxyService.getActive();
-        return AdvancedProxyUtils.getRandomProxy(0L, active)
+        log.error("Trying to send request with another random proxy. Exception - " + e.getMessage());
+        return proxyService.getRandomProxy(0L)
                 .hasElement()
                 .flatMap(hasElement -> {
                     if (hasElement) {
-                        return AdvancedProxyUtils.getRandomProxy(params.getTimeout(), active).flatMap(proxy ->
+                        return proxyService.getRandomProxy(params.getTimeout()).flatMap(proxy ->
                                 getProxiedResponse(params, proxy));
                     } else {
                         return getWebClientResponse(params)

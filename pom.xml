@@ -15,6 +15,8 @@
         <server.port>8022</server.port>
         <management.port>8023</management.port>
         <exposed.ports>${server.port} ${management.port}</exposed.ports>
+        <shedlock-provider-redis-spring.version>4.41.0</shedlock-provider-redis-spring.version>
+        <shedlock-spring.version>4.41.0</shedlock-spring.version>
     </properties>
     <dependencies>
         <!-- Spring -->
@@ -85,6 +87,16 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-provider-redis-spring</artifactId>
+            <version>${shedlock-provider-redis-spring.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-spring</artifactId>
+            <version>${shedlock-spring.version}</version>
         </dependency>
     </dependencies>
 

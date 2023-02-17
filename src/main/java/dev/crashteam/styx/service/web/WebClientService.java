@@ -1,6 +1,6 @@
 package dev.crashteam.styx.service.web;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.crashteam.styx.exception.HeadersParseException;
 import dev.crashteam.styx.exception.NoContentTypeHeaderException;
 import dev.crashteam.styx.exception.NonValidHttpMethodException;
 import dev.crashteam.styx.model.ContextKey;
@@ -15,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -38,7 +37,6 @@ public class WebClientService {
     @Value("${app.timeout-handler}")
     private int handlerTimeout;
 
-    private final ObjectMapper objectMapper;
     private final List<BaseResolver> resolvers;
 
     private final int BUFFER_SIZE = 2 * 1024 * 1024;
@@ -121,6 +119,7 @@ public class WebClientService {
         return new ReactorClientHttpConnector(httpClient);
     }
 
+    @SuppressWarnings("unchecked")
     public Map<String, String> getHeaders(List<ProxyRequestParams.ContextValue> context) {
         if (CollectionUtils.isEmpty(context)) {
             return Collections.emptyMap();
@@ -131,15 +130,14 @@ public class WebClientService {
                         .equalsIgnoreCase(ContextKey.HEADERS.getValue()))
                 .map(ProxyRequestParams.ContextValue::getValue)
                 .findFirst();
-        optValue.ifPresent(value -> {
-            Mono.fromCallable(() -> {
-                        final String json = objectMapper.writeValueAsString(value);
-                        final Map map = objectMapper.readValue(json, Map.class);
-                        headers.putAll(map);
-                        return map;
-                    }
-            ).subscribe();
-        });
+        if (optValue.isPresent()) {
+            try {
+                Map<String, String> map = (Map<String, String>) optValue.get();
+                headers.putAll(map);
+            } catch (Exception e) {
+                throw new HeadersParseException(e.getMessage(), e.getCause());
+            }
+        }
         return headers;
     }
 
@@ -162,16 +160,6 @@ public class WebClientService {
         return webclient;
     }
 
-    private Object formObjectValue(String contentType, Object object) {
-        return switch (contentType) {
-            case MediaType.APPLICATION_JSON_VALUE -> (base64toJsonString((String) object));
-            default -> object;
-        };
-    }
-
-    private String base64toJsonString(String value) {
-        return new String(Base64.getDecoder().decode(value));
-    }
 
     private Consumer<HttpHeaders> getHeadersConsumer(Map<String, String> headers) {
         return httpHeaders -> headers.forEach(httpHeaders::add);
@@ -183,10 +171,6 @@ public class WebClientService {
                 httpHeaders.add(k.substring(2), v);
             }
         });
-    }
-
-    private Mono<Object> getObjFromJson(String json) {
-        return Mono.fromCallable(() -> objectMapper.readValue(json, Object.class));
     }
 
     private ExchangeStrategies getMaxBufferSize() {
