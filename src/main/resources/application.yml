@@ -28,16 +28,22 @@ spring:
       ansi:
         enabled: always
   redis:
-    host: redis-image
-    port: 6379
-    password:
+    host: marketdb-redis-do-user-9153772-0.b.db.ondigitalocean.com
+    port: 25061
+    username: default
+    password: u7xpmAET83thnhjz
+    ssl: true
 app:
   timeout-handler: 10
   proxy:
     timeout: 10000
     proxy-line:
-      api-key: some-api-key
+      api-key: v3ityelj2eh53re1ukysymrx7ci0oaytsn0ozt33
       url: https://panel.proxyline.net/api/
+
+loki:
+  host: localhost
+  enabled: false
 
 application:
   scheduler:
