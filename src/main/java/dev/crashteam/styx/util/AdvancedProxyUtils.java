@@ -1,9 +1,6 @@
 package dev.crashteam.styx.util;
 
-import dev.crashteam.styx.exception.HeadersParseException;
-import dev.crashteam.styx.exception.KeyNotSupportedException;
-import dev.crashteam.styx.exception.NoContentTypeHeaderException;
-import dev.crashteam.styx.exception.NonValidHttpMethodException;
+import dev.crashteam.styx.exception.*;
 import dev.crashteam.styx.model.ContextKey;
 import dev.crashteam.styx.model.content.BaseResolver;
 import dev.crashteam.styx.model.content.DefaultResolver;
@@ -11,8 +8,10 @@ import dev.crashteam.styx.model.proxy.ProxyInstance;
 import dev.crashteam.styx.model.web.ErrorResult;
 import dev.crashteam.styx.model.web.ProxyRequestParams;
 import dev.crashteam.styx.model.web.Result;
+import io.netty.handler.proxy.HttpProxyHandler;
 import io.netty.handler.proxy.ProxyConnectException;
 import io.netty.handler.ssl.SslHandshakeTimeoutException;
+import io.netty.handler.timeout.ReadTimeoutException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.CollectionUtils;
@@ -58,10 +57,13 @@ public class AdvancedProxyUtils {
     public static boolean badProxyError(Throwable throwable) {
         return (throwable instanceof ConnectException
                 || throwable instanceof SslHandshakeTimeoutException
+                || throwable instanceof ReadTimeoutException
+                || throwable instanceof ProxyForbiddenException
                 || (throwable.getCause() != null && throwable.getCause() instanceof ConnectException)
-                || (throwable.getCause() != null && throwable.getCause() instanceof SslHandshakeTimeoutException))
-                && !(throwable.getCause() != null
-                && (throwable.getCause() instanceof ProxyConnectException));
+                || (throwable.getCause() != null && throwable.getCause() instanceof SslHandshakeTimeoutException)
+                || (throwable.getCause() != null && throwable.getCause() instanceof HttpProxyHandler.HttpProxyConnectException))
+                || (throwable.getCause() != null && throwable.getCause() instanceof ReadTimeoutException)
+                || (throwable.getCause() != null && (throwable.getCause() instanceof ProxyConnectException));
     }
 
     public static Mono<ProxyInstance> getRandomProxy(Long timeout, Flux<ProxyInstance> activeProxies) {

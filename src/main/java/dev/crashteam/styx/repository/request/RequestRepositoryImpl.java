@@ -50,7 +50,7 @@ public class RequestRepositoryImpl implements RequestRepository {
 
     @Override
     public Mono<RetriesRequest> findById(String s) {
-        return null;
+        return hashOperations.get(RedisKey.REQUEST_KEY.getValue(), s);
     }
 
     @Override
