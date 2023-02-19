@@ -41,6 +41,11 @@ public class ProxyRepositoryImpl implements ProxyRepository {
                 .thenReturn(entity);
     }
 
+    public <S extends ProxyInstance> Mono<S> saveExisting(S entity) {
+        return hashOperations.put(RedisKey.PROXY_KEY.getValue(), getRedisHashKey(entity), entity)
+                .thenReturn(entity);
+    }
+
     @Override
     public <S extends ProxyInstance> Flux<S> saveAll(Iterable<S> entities) {
         return Flux.fromIterable(entities)
