@@ -101,7 +101,7 @@ public class AdvancedConversationService {
     }
 
     private Mono<Result> getWebClientResponse(ProxyRequestParams params) {
-        log.info("No active proxies available, sending request as is on url - [{}]", params.getUrl());
+        log.warn("No active proxies available, sending request as is on url - [{}]", params.getUrl());
         return webClientService.getWebclientWithHttpMethod(params)
                 .retrieve()
                 .onStatus(httpStatus -> !httpStatus.is2xxSuccessful(), this::getMonoError)
