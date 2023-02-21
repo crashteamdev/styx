@@ -62,6 +62,7 @@ public class AdvancedConversationService {
                 .onStatus(httpStatus -> !httpStatus.is2xxSuccessful(), this::getMonoError)
                 .onStatus(httpStatus -> httpStatus.equals(HttpStatus.FORBIDDEN), this::getForbiddenError)
                 .toEntity(Object.class)
+                .timeout(Duration.ofMillis(4000L), Mono.error(new ReadTimeoutException("Timeout")))
                 .map(response -> Result.success(response.getStatusCodeValue(), params.getUrl(), response.getBody(),
                         params.getHttpMethod()))
                 .onErrorResume(throwable -> throwable instanceof OriginalRequestException, e -> {
@@ -92,6 +93,9 @@ public class AdvancedConversationService {
                                     return Mono.just(ErrorResult.proxyConnectionError(params.getUrl(), e));
                                 }
                                 retriesRequestService.save(retriesRequest).subscribe();
+                                if (params.getTimeout() == null) {
+                                    params.setTimeout(4000L);
+                                }
                                 return connectionErrorResult(e, params, requestId);
                             });
                 })
