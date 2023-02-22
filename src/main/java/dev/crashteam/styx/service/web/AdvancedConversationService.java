@@ -90,6 +90,7 @@ public class AdvancedConversationService {
                                 if (retriesRequest.getRetries() == 0) {
                                     retriesRequestService.deleteByRequestId(requestId).subscribe();
                                     proxyService.deleteByHashKey(proxy);
+                                    log.error("Proxy - [{}:{}] request failed", proxy.getHost(), proxy.getPort());
                                     return Mono.just(ErrorResult.proxyConnectionError(params.getUrl(), e));
                                 }
                                 retriesRequestService.save(retriesRequest).subscribe();
@@ -127,7 +128,7 @@ public class AdvancedConversationService {
     }
 
     private Mono<Result> connectionErrorResult(Throwable e, ProxyRequestParams params, String requestId) {
-        log.error("Trying to send request with another random proxy. Exception - " + e.getMessage());
+        log.warn("Trying to send request with another random proxy. Exception - " + e.getMessage());
         return proxyService.getRandomProxy(0L)
                 .hasElement()
                 .flatMap(hasElement -> {
