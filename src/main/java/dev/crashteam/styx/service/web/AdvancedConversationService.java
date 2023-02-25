@@ -98,6 +98,8 @@ public class AdvancedConversationService {
                                 retriesRequestService.save(retriesRequest).subscribe();
                                 if (params.getTimeout() == 0L) {
                                     params.setTimeout(4000L);
+                                } else {
+                                    params.setTimeout(params.getTimeout() + 2000L);
                                 }
                                 return connectionErrorResult(e, params, requestId);
                             });
