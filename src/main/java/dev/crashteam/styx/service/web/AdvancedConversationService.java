@@ -10,7 +10,6 @@ import dev.crashteam.styx.model.web.ProxyRequestParams;
 import dev.crashteam.styx.model.web.Result;
 import dev.crashteam.styx.service.proxy.CachedProxyService;
 import dev.crashteam.styx.util.AdvancedProxyUtils;
-import io.netty.handler.proxy.ProxyConnectException;
 import io.netty.handler.timeout.ReadTimeoutException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +21,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -90,11 +90,13 @@ public class AdvancedConversationService {
                                 if (retriesRequest.getRetries() == 0) {
                                     retriesRequestService.deleteByRequestId(requestId).subscribe();
                                     proxyService.deleteByHashKey(proxy);
-                                    log.error("Proxy - [{}:{}] request failed", proxy.getHost(), proxy.getPort());
+                                    log.error("Proxy - [{}:{}] request failed, URL - {}, HttpMethod - {}. Error - {}", proxy.getHost(),
+                                            proxy.getPort(), params.getUrl(), params.getHttpMethod(),
+                                            Optional.ofNullable(e.getCause()).map(Throwable::getMessage).orElse(e.getMessage()));
                                     return Mono.just(ErrorResult.proxyConnectionError(params.getUrl(), e));
                                 }
                                 retriesRequestService.save(retriesRequest).subscribe();
-                                if (params.getTimeout() == null) {
+                                if (params.getTimeout() == 0L) {
                                     params.setTimeout(4000L);
                                 }
                                 return connectionErrorResult(e, params, requestId);
