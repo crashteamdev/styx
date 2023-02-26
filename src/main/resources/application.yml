@@ -46,7 +46,9 @@ loki:
   enabled: false
 
 application:
+  forbidden-expire: 10
   scheduler:
     lockAtMost: 15m
     redis:
       cache-cron: 0 0/5 * * * ?
+      forbidden-url-cron: 0 0/1 * * * ?

@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 
+import java.util.Collections;
+
 @Slf4j
 @Service
 public class ProxyLineService implements ProxyProvider {
@@ -32,6 +34,7 @@ public class ProxyLineService implements ProxyProvider {
                     proxyInstance.setProxySource(ProxySource.PROXY_LINE);
                     proxyInstance.setUser(p.getUser());
                     proxyInstance.setPassword(p.getPassword());
+                    proxyInstance.setNotAvailableUrls(null);
                     return proxyInstance;
                 });
 
