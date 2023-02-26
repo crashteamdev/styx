@@ -35,11 +35,11 @@ public class AdvancedConversationService {
 
     public Mono<Result> getProxiedResult(ProxyRequestParams params) {
         String requestId = UUID.randomUUID().toString();
-        return proxyService.getRandomProxy(0L)
+        return proxyService.getRandomProxy(0L, params.getUrl())
                 .hasElement()
                 .flatMap(hasElement -> {
                     if (hasElement) {
-                        return proxyService.getRandomProxy(params.getTimeout())
+                        return proxyService.getRandomProxy(params.getTimeout(), params.getUrl())
                                 .flatMap(proxy -> getProxiedResponse(params, proxy, requestId));
                     } else {
                         return getWebClientResponse(params)
@@ -89,7 +89,7 @@ public class AdvancedConversationService {
                                 retriesRequest.setRetries(retriesRequest.getRetries() - 1);
                                 if (retriesRequest.getRetries() == 0) {
                                     retriesRequestService.deleteByRequestId(requestId).subscribe();
-                                    proxyService.deleteByHashKey(proxy);
+                                    proxyService.putForbiddenUrl(params.getUrl(), proxy);
                                     log.error("Proxy - [{}:{}] request failed, URL - {}, HttpMethod - {}. Error - {}", proxy.getHost(),
                                             proxy.getPort(), params.getUrl(), params.getHttpMethod(),
                                             Optional.ofNullable(e.getCause()).map(Throwable::getMessage).orElse(e.getMessage()));
@@ -115,6 +115,7 @@ public class AdvancedConversationService {
                 .retrieve()
                 .onStatus(httpStatus -> !httpStatus.is2xxSuccessful(), this::getMonoError)
                 .toEntity(Object.class)
+                .timeout(Duration.ofMillis(4000L), Mono.error(new ReadTimeoutException("Timeout")))
                 .map(response -> Result.successNoProxy(response.getStatusCodeValue(), params.getUrl(), response.getBody(),
                         params.getHttpMethod()))
                 .onErrorResume(throwable -> throwable instanceof ProxyGlobalException,
@@ -133,11 +134,11 @@ public class AdvancedConversationService {
 
     private Mono<Result> connectionErrorResult(Throwable e, ProxyRequestParams params, String requestId) {
         log.warn("Trying to send request with another random proxy. Exception - " + e.getMessage());
-        return proxyService.getRandomProxy(0L)
+        return proxyService.getRandomProxy(0L, params.getUrl())
                 .hasElement()
                 .flatMap(hasElement -> {
                     if (hasElement) {
-                        return proxyService.getRandomProxy(params.getTimeout()).flatMap(proxy ->
+                        return proxyService.getRandomProxy(params.getTimeout(), params.getUrl()).flatMap(proxy ->
                                 getProxiedResponse(params, proxy, requestId));
                     } else {
                         return getWebClientResponse(params)
