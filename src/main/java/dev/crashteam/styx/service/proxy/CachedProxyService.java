@@ -17,9 +17,9 @@ import reactor.core.publisher.Mono;
 import java.net.URL;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @Service
 @RequiredArgsConstructor
@@ -48,14 +48,20 @@ public class CachedProxyService {
     public void putForbiddenUrl(String url, ProxyInstance proxy) {
         String rootUrl = new URL(url).toURI().resolve("/").toString();
         log.warn("Put forbidden url - [{}] for proxy - [{}:{}]", rootUrl, proxy.getHost(), proxy.getPort());
-        if (!CollectionUtils.isEmpty(proxy.getNotAvailableUrls())) {
-            proxy.getNotAvailableUrls().put(rootUrl, LocalDateTime.now().plusMinutes(expireMinutes));
+        var notAvailableUrls = proxy.getNotAvailableUrls();
+        long expireTime = LocalDateTime.now().plusMinutes(expireMinutes).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+        if (notAvailableUrls != null) {
+            notAvailableUrls.add(new ProxyInstance.Forbidden(rootUrl, expireTime));
         } else {
-            Map<String, LocalDateTime> forbiddenUrlsMap = new ConcurrentHashMap<>();
-            forbiddenUrlsMap.put(rootUrl, LocalDateTime.now().plusMinutes(expireMinutes));
-            proxy.setNotAvailableUrls(forbiddenUrlsMap);
+            List<ProxyInstance.Forbidden> urls = new CopyOnWriteArrayList<>();
+            urls.add(new ProxyInstance.Forbidden(rootUrl, expireTime));
+            proxy.setNotAvailableUrls(urls);
         }
-        proxyRepository.save(proxy).subscribe();
+        proxyRepository.saveExisting(proxy).subscribe();
+    }
+
+    public Mono<ProxyInstance> saveExisting(ProxyInstance proxy) {
+        return proxyRepository.saveExisting(proxy);
     }
 
     public Mono<ProxyInstance> getRandomProxy(Long timeout) {
@@ -67,7 +73,7 @@ public class CachedProxyService {
         String urlRoot = new URL(url).toURI().resolve("/").toString();
         Flux<ProxyInstance> proxyInstanceFlux = proxyRepository.findAll()
                 .filter(proxy -> !(!CollectionUtils.isEmpty(proxy.getNotAvailableUrls())
-                        && proxy.getNotAvailableUrls().keySet().stream().anyMatch(urlRoot::equals)));
+                        && proxy.getNotAvailableUrls().stream().anyMatch(it -> urlRoot.equals(it.getUrl()))));
         return AdvancedProxyUtils.getRandomProxy(timeout, proxyInstanceFlux);
     }
 

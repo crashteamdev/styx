@@ -59,7 +59,7 @@ public class AdvancedConversationService {
                 params.getUrl(), params.getHttpMethod(), proxy.getProxySource().getValue(), proxy.getBadProxyPoint());
         return webClientService.getProxiedWebclientWithHttpMethod(params, proxy)
                 .retrieve()
-                .onStatus(httpStatus -> !httpStatus.is2xxSuccessful() && !httpStatus.equals(HttpStatus.FORBIDDEN), this::getMonoError)
+                //.onStatus(httpStatus -> !httpStatus.is2xxSuccessful() && !httpStatus.equals(HttpStatus.FORBIDDEN), this::getMonoError)
                 .onStatus(httpStatus -> httpStatus.equals(HttpStatus.FORBIDDEN), this::getForbiddenError)
                 .toEntity(Object.class)
                 .timeout(Duration.ofMillis(4000L), Mono.error(new ReadTimeoutException("Timeout")))
@@ -71,7 +71,7 @@ public class AdvancedConversationService {
                     return Mono.just(ErrorResult.originalRequestError(requestException.getStatusCode(), params.getUrl(),
                             e, requestException.getBody()));
                 })
-                .onErrorResume(AdvancedProxyUtils::badProxyError, e -> {
+                .onErrorResume(Objects::nonNull, e -> {
                     if (e.getCause() instanceof UnsupportedMediaTypeException) {
                         return Mono.just(ErrorResult.unknownError(params.getUrl(), e));
                     }

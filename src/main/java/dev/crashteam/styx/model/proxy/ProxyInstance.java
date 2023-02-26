@@ -1,9 +1,10 @@
 package dev.crashteam.styx.model.proxy;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-import java.util.Map;
+import java.util.List;
 
 @Data
 public class ProxyInstance {
@@ -15,5 +16,13 @@ public class ProxyInstance {
     private ProxySource proxySource;
     private String user;
     private String password;
-    private Map<String, LocalDateTime> notAvailableUrls;
+    private List<Forbidden> notAvailableUrls;
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class Forbidden {
+        public String url;
+        public Long expireTime;
+    }
 }

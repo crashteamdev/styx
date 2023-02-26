@@ -12,11 +12,9 @@ import org.springframework.util.CollectionUtils;
 import reactor.core.publisher.Flux;
 
 import javax.annotation.PostConstruct;
+import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -47,18 +45,20 @@ public class ProxyHandler {
                 .filter(Objects::nonNull)
                 .filter(proxy -> !CollectionUtils.isEmpty(proxy.getNotAvailableUrls()))
                 .flatMap(proxy -> {
-                    Set<String> expired = new HashSet<>();
-                    proxy.getNotAvailableUrls().forEach((key, value) -> {
-                        if (LocalDateTime.now().isAfter(value)) {
-                            expired.add(key);
+                    Set<ProxyInstance.Forbidden> expired = new HashSet<>();
+                    proxy.getNotAvailableUrls().forEach(it -> {
+                        LocalDateTime dateTime = LocalDateTime
+                                .ofInstant(Instant.ofEpochMilli(it.getExpireTime()), TimeZone.getDefault().toZoneId());
+                        if (LocalDateTime.now().isAfter(dateTime)) {
+                            expired.add(it);
                         }
                     });
-                    for (String url : expired) {
-                        log.info("Removing forbidden url - [{}], for proxy [{}:{}]", url,
+                    for (var forbidden : expired) {
+                        log.info("Removing forbidden url - [{}], for proxy [{}:{}]", forbidden.getUrl(),
                                 proxy.getHost(), proxy.getPort());
-                        proxy.getNotAvailableUrls().remove(url);
+                        proxy.getNotAvailableUrls().remove(forbidden);
                     }
-                    return proxyService.save(proxy);
+                    return proxyService.saveExisting(proxy);
                 }).subscribe();
     }
 
