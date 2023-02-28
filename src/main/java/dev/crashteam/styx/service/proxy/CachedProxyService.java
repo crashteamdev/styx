@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -25,9 +24,6 @@ public class CachedProxyService {
 
     private final ProxyRepositoryImpl proxyRepository;
     private final ForbiddenProxyRepository forbiddenProxyRepository;
-
-    @Value("${application.forbidden-expire}")
-    private Long expireMinutes;
 
     public Flux<ProxyInstance> getActive() {
         return proxyRepository.findActive();
@@ -70,6 +66,10 @@ public class CachedProxyService {
 
     public Flux<ProxyInstance> saveAll(Publisher<ProxyInstance> entityStream) {
         return proxyRepository.saveAll(entityStream);
+    }
+
+    public void deleteAll() {
+        proxyRepository.deleteAllByKey().subscribe();
     }
 
     public void setBadProxyOnError(ProxyInstance proxy, Throwable ex) {

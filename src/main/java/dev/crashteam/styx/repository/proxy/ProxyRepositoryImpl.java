@@ -138,6 +138,10 @@ public class ProxyRepositoryImpl implements ProxyRepository {
         return null;
     }
 
+    public Mono<Boolean> deleteAllByKey() {
+        return hashOperations.delete(RedisKey.PROXY_KEY.getValue());
+    }
+
     private String getRedisHashKey(ProxyInstance proxy) {
         return proxy.getHost() + ":" + proxy.getPort();
 

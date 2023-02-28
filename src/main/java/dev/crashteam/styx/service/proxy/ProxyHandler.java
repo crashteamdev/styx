@@ -9,7 +9,7 @@ import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 
@@ -33,7 +33,7 @@ public class ProxyHandler {
     public void fillRedisCacheOnSchedule() {
         log.info("Filling redis cache with proxy values...");
         LockAssert.assertLocked();
-        fillRedisCache();
+        fillRedisCacheWithinTransaction();
     }
 
     @Scheduled(cron = "${application.scheduler.redis.forbidden-url-cron}")
@@ -64,6 +64,16 @@ public class ProxyHandler {
     private void fillRedisCache() {
         final Flux<ProxyInstance> defaultProxyFlux = Flux.fromIterable(proxyProviders)
                 .flatMap(ProxyProvider::getProxy);
+        proxyService.saveAll(defaultProxyFlux)
+                .subscribe();
+    }
+
+    @Transactional
+    public void fillRedisCacheWithinTransaction() {
+
+        final Flux<ProxyInstance> defaultProxyFlux = Flux.fromIterable(proxyProviders)
+                .flatMap(ProxyProvider::getProxy);
+        proxyService.deleteAll();
         proxyService.saveAll(defaultProxyFlux)
                 .subscribe();
     }
