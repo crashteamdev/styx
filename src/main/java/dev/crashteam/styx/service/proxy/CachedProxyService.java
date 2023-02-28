@@ -2,6 +2,7 @@ package dev.crashteam.styx.service.proxy;
 
 
 import dev.crashteam.styx.model.proxy.ProxyInstance;
+import dev.crashteam.styx.repository.forbidden.ForbiddenProxyRepository;
 import dev.crashteam.styx.repository.proxy.ProxyRepositoryImpl;
 import dev.crashteam.styx.util.AdvancedProxyUtils;
 import lombok.RequiredArgsConstructor;
@@ -10,16 +11,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.net.URL;
 import java.time.Duration;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +24,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class CachedProxyService {
 
     private final ProxyRepositoryImpl proxyRepository;
+    private final ForbiddenProxyRepository forbiddenProxyRepository;
 
     @Value("${application.forbidden-expire}")
     private Long expireMinutes;
@@ -44,22 +42,6 @@ public class CachedProxyService {
         proxyRepository.deleteByHashKey(proxy).subscribe();
     }
 
-    @SneakyThrows
-    public void putForbiddenUrl(String url, ProxyInstance proxy) {
-        String rootUrl = new URL(url).toURI().resolve("/").toString();
-        log.warn("Put forbidden url - [{}] for proxy - [{}:{}]", rootUrl, proxy.getHost(), proxy.getPort());
-        var notAvailableUrls = proxy.getNotAvailableUrls();
-        long expireTime = LocalDateTime.now().plusMinutes(expireMinutes).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
-        if (notAvailableUrls != null) {
-            notAvailableUrls.add(new ProxyInstance.Forbidden(rootUrl, expireTime));
-        } else {
-            List<ProxyInstance.Forbidden> urls = new CopyOnWriteArrayList<>();
-            urls.add(new ProxyInstance.Forbidden(rootUrl, expireTime));
-            proxy.setNotAvailableUrls(urls);
-        }
-        proxyRepository.saveExisting(proxy).subscribe();
-    }
-
     public Mono<ProxyInstance> saveExisting(ProxyInstance proxy) {
         return proxyRepository.saveExisting(proxy);
     }
@@ -70,10 +52,9 @@ public class CachedProxyService {
 
     @SneakyThrows
     public Mono<ProxyInstance> getRandomProxy(Long timeout, String url) {
-        String urlRoot = new URL(url).toURI().resolve("/").toString();
+        String rootUrl = new URL(url).toURI().resolve("/").toString();
         Flux<ProxyInstance> proxyInstanceFlux = proxyRepository.findAll()
-                .filter(proxy -> !(!CollectionUtils.isEmpty(proxy.getNotAvailableUrls())
-                        && proxy.getNotAvailableUrls().stream().anyMatch(it -> urlRoot.equals(it.getUrl()))));
+                .filterWhen(proxy -> forbiddenProxyRepository.notExistsByKey(proxy, rootUrl));
         return AdvancedProxyUtils.getRandomProxy(timeout, proxyInstanceFlux);
     }
 

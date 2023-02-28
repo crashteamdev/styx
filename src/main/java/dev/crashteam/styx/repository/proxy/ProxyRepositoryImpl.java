@@ -49,13 +49,13 @@ public class ProxyRepositoryImpl implements ProxyRepository {
     @Override
     public <S extends ProxyInstance> Flux<S> saveAll(Iterable<S> entities) {
         return Flux.fromIterable(entities)
-                .flatMap(this::save);
+                .flatMap(this::saveExisting);
     }
 
     @Override
     public <S extends ProxyInstance> Flux<S> saveAll(Publisher<S> entityStream) {
         return Flux.from(entityStream)
-                .flatMap(this::save);
+                .flatMap(this::saveExisting);
     }
 
     public Mono<ProxyInstance> getRandomProxy() {
