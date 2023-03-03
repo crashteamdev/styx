@@ -68,8 +68,8 @@ public class CachedProxyService {
         return proxyRepository.saveAll(entityStream);
     }
 
-    public void deleteAll() {
-        proxyRepository.deleteAllByKey().subscribe();
+    public Mono<Boolean> deleteAll() {
+        return proxyRepository.deleteAllByKey();
     }
 
     public void setBadProxyOnError(ProxyInstance proxy, Throwable ex) {
