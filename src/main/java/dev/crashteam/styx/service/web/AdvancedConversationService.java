@@ -8,6 +8,7 @@ import dev.crashteam.styx.model.request.RetriesRequest;
 import dev.crashteam.styx.model.web.ErrorResult;
 import dev.crashteam.styx.model.web.ProxyRequestParams;
 import dev.crashteam.styx.model.web.Result;
+import dev.crashteam.styx.service.forbidden.ForbiddenProxyService;
 import dev.crashteam.styx.service.proxy.CachedProxyService;
 import dev.crashteam.styx.util.AdvancedProxyUtils;
 import io.netty.handler.timeout.ReadTimeoutException;
@@ -31,6 +32,7 @@ public class AdvancedConversationService {
 
     private final WebClientService webClientService;
     private final CachedProxyService proxyService;
+    private final ForbiddenProxyService forbiddenProxyService;
     private final RetriesRequestService retriesRequestService;
 
     public Mono<Result> getProxiedResult(ProxyRequestParams params) {
@@ -89,7 +91,7 @@ public class AdvancedConversationService {
                                 retriesRequest.setRetries(retriesRequest.getRetries() - 1);
                                 if (retriesRequest.getRetries() == 0) {
                                     retriesRequestService.deleteByRequestId(requestId).subscribe();
-                                    proxyService.putForbiddenUrl(params.getUrl(), proxy);
+                                    forbiddenProxyService.save(params.getUrl(), proxy);
                                     log.error("Proxy - [{}:{}] request failed, URL - {}, HttpMethod - {}. Error - {}", proxy.getHost(),
                                             proxy.getPort(), params.getUrl(), params.getHttpMethod(),
                                             Optional.ofNullable(e.getCause()).map(Throwable::getMessage).orElse(e.getMessage()));

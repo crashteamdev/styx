@@ -34,7 +34,6 @@ public class ProxyLineService implements ProxyProvider {
                     proxyInstance.setProxySource(ProxySource.PROXY_LINE);
                     proxyInstance.setUser(p.getUser());
                     proxyInstance.setPassword(p.getPassword());
-                    proxyInstance.setNotAvailableUrls(null);
                     return proxyInstance;
                 });
 

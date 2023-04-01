@@ -1,6 +1,7 @@
 package dev.crashteam.styx.configuration;
 
 
+import dev.crashteam.styx.model.forbidden_proxy.ForbiddenProxy;
 import dev.crashteam.styx.model.proxy.ProxyInstance;
 import dev.crashteam.styx.model.request.RetriesRequest;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,18 @@ public class RedisConfiguration {
                 .<String, RetriesRequest>newSerializationContext(new StringRedisSerializer())
                 .key(new StringRedisSerializer())
                 .value(new GenericToStringSerializer<>(RetriesRequest.class))
+                .hashKey(new StringRedisSerializer())
+                .hashValue(new GenericJackson2JsonRedisSerializer())
+                .build();
+        return new ReactiveRedisTemplate<>(connectionFactory, serializationContext);
+    }
+
+    @Bean
+    public ReactiveRedisOperations<String, ForbiddenProxy> redisForbiddenProxyOperations(LettuceConnectionFactory connectionFactory) {
+        RedisSerializationContext<String, ForbiddenProxy> serializationContext = RedisSerializationContext
+                .<String, ForbiddenProxy>newSerializationContext(new StringRedisSerializer())
+                .key(new StringRedisSerializer())
+                .value(new GenericToStringSerializer<>(ForbiddenProxy.class))
                 .hashKey(new StringRedisSerializer())
                 .hashValue(new GenericJackson2JsonRedisSerializer())
                 .build();

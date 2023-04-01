@@ -1,6 +1,7 @@
 package dev.crashteam.styx.service.proxy;
 
 import dev.crashteam.styx.model.proxy.ProxyInstance;
+import dev.crashteam.styx.service.forbidden.ForbiddenProxyService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.core.LockAssert;
@@ -8,7 +9,8 @@ import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 
 import javax.annotation.PostConstruct;
@@ -24,13 +26,14 @@ public class ProxyHandler {
 
     private final List<ProxyProvider> proxyProviders;
     private final CachedProxyService proxyService;
+    private final ForbiddenProxyService forbiddenProxyService;
 
     @Scheduled(cron = "${application.scheduler.redis.cache-cron}")
     @SchedulerLock(name = "fillRedisCache")
     public void fillRedisCacheOnSchedule() {
         log.info("Filling redis cache with proxy values...");
         LockAssert.assertLocked();
-        fillRedisCache();
+        fillRedisCacheWithinTransaction();
     }
 
     @Scheduled(cron = "${application.scheduler.redis.forbidden-url-cron}")
@@ -41,31 +44,35 @@ public class ProxyHandler {
     }
 
     private void cleanForbiddenUrls() {
-        proxyService.findAll()
-                .filter(Objects::nonNull)
-                .filter(proxy -> !CollectionUtils.isEmpty(proxy.getNotAvailableUrls()))
-                .flatMap(proxy -> {
-                    Set<ProxyInstance.Forbidden> expired = new HashSet<>();
-                    proxy.getNotAvailableUrls().forEach(it -> {
+        forbiddenProxyService.findAllWithKeys()
+                .map(entry -> {
+                    if (entry.getValue() != null) {
                         LocalDateTime dateTime = LocalDateTime
-                                .ofInstant(Instant.ofEpochMilli(it.getExpireTime()), TimeZone.getDefault().toZoneId());
+                                .ofInstant(Instant.ofEpochMilli(entry.getValue().getExpireTime()),
+                                        TimeZone.getDefault().toZoneId());
                         if (LocalDateTime.now().isAfter(dateTime)) {
-                            expired.add(it);
+                            return entry.getKey();
                         }
-                    });
-                    for (var forbidden : expired) {
-                        log.info("Removing forbidden url - [{}], for proxy [{}:{}]", forbidden.getUrl(),
-                                proxy.getHost(), proxy.getPort());
-                        proxy.getNotAvailableUrls().remove(forbidden);
                     }
-                    return proxyService.saveExisting(proxy);
-                }).subscribe();
+                    return "";
+                })
+                .filter(StringUtils::hasText)
+                .doOnNext(forbiddenProxyService::deleteByHashKey).subscribe();
     }
 
     @PostConstruct
     private void fillRedisCache() {
         final Flux<ProxyInstance> defaultProxyFlux = Flux.fromIterable(proxyProviders)
                 .flatMap(ProxyProvider::getProxy);
+        proxyService.saveAll(defaultProxyFlux)
+                .subscribe();
+    }
+
+    @Transactional
+    public void fillRedisCacheWithinTransaction() {
+        final Flux<ProxyInstance> defaultProxyFlux = Flux.fromIterable(proxyProviders)
+                .flatMap(ProxyProvider::getProxy);
+        proxyService.deleteAll().subscribe();
         proxyService.saveAll(defaultProxyFlux)
                 .subscribe();
     }

@@ -49,13 +49,13 @@ public class ProxyRepositoryImpl implements ProxyRepository {
     @Override
     public <S extends ProxyInstance> Flux<S> saveAll(Iterable<S> entities) {
         return Flux.fromIterable(entities)
-                .flatMap(this::save);
+                .flatMap(this::saveExisting);
     }
 
     @Override
     public <S extends ProxyInstance> Flux<S> saveAll(Publisher<S> entityStream) {
         return Flux.from(entityStream)
-                .flatMap(this::save);
+                .flatMap(this::saveExisting);
     }
 
     public Mono<ProxyInstance> getRandomProxy() {
@@ -136,6 +136,10 @@ public class ProxyRepositoryImpl implements ProxyRepository {
     @Override
     public Mono<Void> deleteAll() {
         return null;
+    }
+
+    public Mono<Boolean> deleteAllByKey() {
+        return hashOperations.delete(RedisKey.PROXY_KEY.getValue());
     }
 
     private String getRedisHashKey(ProxyInstance proxy) {
