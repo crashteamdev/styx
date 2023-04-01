@@ -14,12 +14,14 @@ import dev.crashteam.styx.util.AdvancedProxyUtils;
 import io.netty.handler.timeout.ReadTimeoutException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.UnsupportedMediaTypeException;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import reactor.core.publisher.Mono;
 
+import java.net.URL;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
@@ -34,6 +36,9 @@ public class AdvancedConversationService {
     private final CachedProxyService proxyService;
     private final ForbiddenProxyService forbiddenProxyService;
     private final RetriesRequestService retriesRequestService;
+
+    @Value("${app.proxy.retries}")
+    private Integer retries;
 
     public Mono<Result> getProxiedResult(ProxyRequestParams params) {
         String requestId = UUID.randomUUID().toString();
@@ -56,9 +61,10 @@ public class AdvancedConversationService {
     }
 
     private Mono<Result> getProxiedResponse(ProxyRequestParams params, ProxyInstance proxy, String requestId) {
-        log.info("Sending request via proxy - [{}:{}]. URL - {}, HttpMethod - {}. Proxy source - {}, Bad proxy points - {}",
+        log.info("Sending request via proxy - [{}:{}]. URL - {}, HttpMethod - {}. Proxy source - {}",
                 proxy.getHost(), proxy.getPort(),
-                params.getUrl(), params.getHttpMethod(), proxy.getProxySource().getValue(), proxy.getBadProxyPoint());
+                params.getUrl(), params.getHttpMethod(), proxy.getProxySource().getValue());
+        String rootUrl = AdvancedProxyUtils.getRootUrl(params.getUrl());
         return webClientService.getProxiedWebclientWithHttpMethod(params, proxy)
                 .retrieve()
                 .onStatus(httpStatus -> !httpStatus.is2xxSuccessful() && !httpStatus.equals(HttpStatus.FORBIDDEN), this::getMonoError)
@@ -77,6 +83,7 @@ public class AdvancedConversationService {
                     if (e.getCause() instanceof UnsupportedMediaTypeException) {
                         return Mono.just(ErrorResult.unknownError(params.getUrl(), e));
                     }
+                    log.warn("Retrying request because of exception - {}. Request id - {}", e.getMessage(), requestId);
                     return retriesRequestService.existsByRequestId(requestId)
                             .flatMap(exist -> {
                                 if (exist) {
@@ -84,14 +91,34 @@ public class AdvancedConversationService {
                                 } else {
                                     RetriesRequest retriesRequest = new RetriesRequest();
                                     retriesRequest.setRequestId(requestId);
-                                    retriesRequest.setRetries(3);
+                                    retriesRequest.setRetries(retries);
                                     return Mono.just(retriesRequest);
                                 }
                             }).flatMap(retriesRequest -> {
+                                Optional<ProxyInstance.BadUrl> badUrlOptional = proxy.getBadUrls()
+                                        .stream()
+                                        .filter(it -> rootUrl.equals(it.getUrl()))
+                                        .findFirst();
+
                                 retriesRequest.setRetries(retriesRequest.getRetries() - 1);
                                 if (retriesRequest.getRetries() == 0) {
                                     retriesRequestService.deleteByRequestId(requestId).subscribe();
-                                    forbiddenProxyService.save(params.getUrl(), proxy);
+                                    if (badUrlOptional.isPresent()) {
+                                        ProxyInstance.BadUrl badUrl = badUrlOptional.get();
+                                        if (badUrl.getPoint() >= 3) {
+                                            forbiddenProxyService.save(rootUrl, proxy);
+                                            badUrl.setPoint(0);
+                                        } else {
+                                            badUrl.setPoint(badUrl.getPoint() + 1);
+                                            log.warn("Setting bad point for proxy - [{}:{}], points - {}, badUrl - {}", proxy.getHost(),
+                                                    proxy.getPort(), proxy.getBadProxyPoint(), badUrl);
+                                        }
+                                    } else {
+                                        ProxyInstance.BadUrl badUrl = new ProxyInstance.BadUrl();
+                                        badUrl.setUrl(rootUrl);
+                                        proxy.getBadUrls().add(badUrl);
+                                    }
+                                    proxyService.saveExisting(proxy);
                                     log.error("Proxy - [{}:{}] request failed, URL - {}, HttpMethod - {}. Error - {}", proxy.getHost(),
                                             proxy.getPort(), params.getUrl(), params.getHttpMethod(),
                                             Optional.ofNullable(e.getCause()).map(Throwable::getMessage).orElse(e.getMessage()));
@@ -101,13 +128,24 @@ public class AdvancedConversationService {
                                 if (params.getTimeout() == 0L) {
                                     params.setTimeout(4000L);
                                 } else {
-                                    params.setTimeout(params.getTimeout() + 2000L);
+                                    params.setTimeout(params.getTimeout() + 3000L);
                                 }
                                 return connectionErrorResult(e, params, requestId);
                             });
                 })
                 .onErrorResume(throwable -> throwable instanceof ProxyGlobalException,
-                        e -> Mono.just(ErrorResult.unknownError(params.getUrl(), e)));
+                        e -> Mono.just(ErrorResult.unknownError(params.getUrl(), e)))
+                .doOnSuccess(result -> {
+                    Optional<ProxyInstance.BadUrl> badUrl = proxy.getBadUrls()
+                            .stream()
+                            .filter(it -> rootUrl.equals(it.getUrl()))
+                            .findFirst();
+                    if (badUrl.isPresent() && badUrl.get().getPoint() > 0) {
+                        log.warn("Reset to zero bad points for proxy - [{}:{}]", proxy.getHost(), proxy.getPort());
+                        badUrl.get().setPoint(0);
+                        proxyService.saveExisting(proxy);
+                    }
+                });
 
     }
 
@@ -166,7 +204,8 @@ public class AdvancedConversationService {
                     log.error("Unknown error", e);
                     return Mono.error(new ProxyGlobalException(e.getMessage(), e));
                 })
-                .flatMap(body -> Mono.error(new ProxyForbiddenException("Proxy request forbidden error", body,
+                .flatMap(body -> Mono.error(new ProxyForbiddenException(("Proxy request forbidden error, " +
+                        "response code from proxied client - %s").formatted(response.rawStatusCode()), body,
                         response.rawStatusCode())));
 
     }

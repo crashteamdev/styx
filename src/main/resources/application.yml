@@ -36,6 +36,7 @@ spring:
 app:
   timeout-handler: 10
   proxy:
+    retries: 4
     timeout: 10000
     proxy-line:
       api-key: v3ityelj2eh53re1ukysymrx7ci0oaytsn0ozt33
@@ -46,7 +47,7 @@ loki:
   enabled: false
 
 application:
-  forbidden-expire: 10
+  forbidden-expire: 7
   scheduler:
     lockAtMost: 15m
     redis:

@@ -16,4 +16,11 @@ public class ProxyInstance {
     private ProxySource proxySource;
     private String user;
     private String password;
+    private List<BadUrl> badUrls;
+
+    @Data
+    public static class BadUrl {
+        private int point;
+        private String url;
+    }
 }

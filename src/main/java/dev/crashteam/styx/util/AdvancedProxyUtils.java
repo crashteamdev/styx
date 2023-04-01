@@ -12,6 +12,7 @@ import io.netty.handler.proxy.HttpProxyHandler;
 import io.netty.handler.proxy.ProxyConnectException;
 import io.netty.handler.ssl.SslHandshakeTimeoutException;
 import io.netty.handler.timeout.ReadTimeoutException;
+import lombok.SneakyThrows;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.CollectionUtils;
@@ -19,6 +20,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.net.ConnectException;
+import java.net.URL;
 import java.time.Duration;
 import java.util.List;
 import java.util.Random;
@@ -83,5 +85,10 @@ public class AdvancedProxyUtils {
                         .filter(size -> size > 0)
                         .flatMap(p -> activeProxies.elementAt(Math.toIntExact(index))))
                 .switchIfEmpty(Mono.empty());
+    }
+
+    @SneakyThrows
+    public static String getRootUrl(String url) {
+        return new URL(url).toURI().resolve("/").toString();
     }
 }

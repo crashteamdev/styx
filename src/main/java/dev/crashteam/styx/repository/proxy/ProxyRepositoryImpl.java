@@ -2,6 +2,8 @@ package dev.crashteam.styx.repository.proxy;
 
 import dev.crashteam.styx.model.RedisKey;
 import dev.crashteam.styx.model.proxy.ProxyInstance;
+import dev.crashteam.styx.repository.forbidden.ForbiddenProxyRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.ReactiveHashOperations;
@@ -12,16 +14,19 @@ import reactor.core.publisher.Mono;
 
 import java.util.Map;
 
+@Slf4j
 @Repository
 public class ProxyRepositoryImpl implements ProxyRepository {
 
     private final ReactiveRedisOperations<String, ProxyInstance> redisOperations;
     private final ReactiveHashOperations<String, String, ProxyInstance> hashOperations;
+    private final ForbiddenProxyRepository forbiddenProxyRepository;
 
     @Autowired
-    public ProxyRepositoryImpl(ReactiveRedisOperations<String, ProxyInstance> redisOperations) {
+    public ProxyRepositoryImpl(ReactiveRedisOperations<String, ProxyInstance> redisOperations, ForbiddenProxyRepository forbiddenProxyRepository) {
         this.redisOperations = redisOperations;
         this.hashOperations = redisOperations.opsForHash();
+        this.forbiddenProxyRepository = forbiddenProxyRepository;
     }
 
     @Override
@@ -62,6 +67,18 @@ public class ProxyRepositoryImpl implements ProxyRepository {
         return hashOperations
                 .randomEntry(RedisKey.PROXY_KEY.getValue())
                 .map(Map.Entry::getValue);
+    }
+
+    public Mono<ProxyInstance> getRandomProxyNotIncludeForbidden(String rootUrl, int retry) {
+        if (retry <= 0) {
+            return Mono.empty();
+        }
+        retry--;
+        return hashOperations
+                .randomEntry(RedisKey.PROXY_KEY.getValue())
+                .map(Map.Entry::getValue)
+                .filterWhen(proxy -> forbiddenProxyRepository.notExistsByKey(proxy, rootUrl))
+                .switchIfEmpty(getRandomProxyNotIncludeForbidden(rootUrl, retry));
     }
 
     @Override

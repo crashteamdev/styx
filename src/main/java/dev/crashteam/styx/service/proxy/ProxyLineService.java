@@ -10,6 +10,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 
 import java.util.Collections;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @Slf4j
 @Service
@@ -33,6 +34,7 @@ public class ProxyLineService implements ProxyProvider {
                     proxyInstance.setActive(true);
                     proxyInstance.setProxySource(ProxySource.PROXY_LINE);
                     proxyInstance.setUser(p.getUser());
+                    proxyInstance.setBadUrls(new CopyOnWriteArrayList<>());
                     proxyInstance.setPassword(p.getPassword());
                     return proxyInstance;
                 });

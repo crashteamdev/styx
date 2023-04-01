@@ -23,7 +23,6 @@ import java.util.List;
 public class CachedProxyService {
 
     private final ProxyRepositoryImpl proxyRepository;
-    private final ForbiddenProxyRepository forbiddenProxyRepository;
 
     public Flux<ProxyInstance> getActive() {
         return proxyRepository.findActive();
@@ -38,8 +37,8 @@ public class CachedProxyService {
         proxyRepository.deleteByHashKey(proxy).subscribe();
     }
 
-    public Mono<ProxyInstance> saveExisting(ProxyInstance proxy) {
-        return proxyRepository.saveExisting(proxy);
+    public void saveExisting(ProxyInstance proxy) {
+        proxyRepository.saveExisting(proxy).subscribe();
     }
 
     public Mono<ProxyInstance> getRandomProxy(Long timeout) {
@@ -49,9 +48,7 @@ public class CachedProxyService {
     @SneakyThrows
     public Mono<ProxyInstance> getRandomProxy(Long timeout, String url) {
         String rootUrl = new URL(url).toURI().resolve("/").toString();
-        Flux<ProxyInstance> proxyInstanceFlux = proxyRepository.findAll()
-                .filterWhen(proxy -> forbiddenProxyRepository.notExistsByKey(proxy, rootUrl));
-        return AdvancedProxyUtils.getRandomProxy(timeout, proxyInstanceFlux);
+        return proxyRepository.getRandomProxyNotIncludeForbidden(rootUrl, 20).delaySubscription(Duration.ofMillis(timeout));
     }
 
     public Mono<ProxyInstance> save(ProxyInstance proxy) {

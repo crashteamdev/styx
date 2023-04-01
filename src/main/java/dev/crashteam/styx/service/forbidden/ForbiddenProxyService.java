@@ -27,8 +27,7 @@ public class ForbiddenProxyService {
     private final ForbiddenProxyRepository forbiddenProxyRepository;
 
     @SneakyThrows
-    public void save(String url, ProxyInstance proxyInstance) {
-        String rootUrl = new URL(url).toURI().resolve("/").toString();
+    public void save(String rootUrl, ProxyInstance proxyInstance) {
         long expireTime = LocalDateTime.now().plusMinutes(expireMinutes).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
         log.warn("Put forbidden url - [{}] for proxy - [{}:{}], estimated time to be deleted from forbidden - {}",
                 rootUrl, proxyInstance.getHost(), proxyInstance.getPort(), expireTime);
