@@ -140,7 +140,7 @@ public class AdvancedConversationService {
                             .stream()
                             .filter(it -> rootUrl.equals(it.getUrl()))
                             .findFirst();
-                    if (badUrl.isPresent() && badUrl.get().getPoint() > 0) {
+                    if (!(result instanceof ErrorResult) && (badUrl.isPresent() && badUrl.get().getPoint() > 0)) {
                         log.warn("Reset to zero bad points for proxy - [{}:{}]", proxy.getHost(), proxy.getPort());
                         badUrl.get().setPoint(0);
                         proxyService.saveExisting(proxy);

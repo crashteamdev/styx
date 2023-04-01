@@ -72,7 +72,6 @@ public class ProxyHandler {
     public void fillRedisCacheWithinTransaction() {
         final Flux<ProxyInstance> defaultProxyFlux = Flux.fromIterable(proxyProviders)
                 .flatMap(ProxyProvider::getProxy);
-        proxyService.deleteAll().subscribe();
         proxyService.saveAll(defaultProxyFlux)
                 .subscribe();
     }
