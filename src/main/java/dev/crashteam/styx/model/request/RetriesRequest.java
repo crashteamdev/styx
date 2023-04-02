@@ -10,4 +10,5 @@ import lombok.NoArgsConstructor;
 public class RetriesRequest {
     private String requestId;
     private Integer retries;
+    private long timeout;
 }

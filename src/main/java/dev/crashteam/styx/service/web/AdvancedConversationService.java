@@ -21,7 +21,6 @@ import org.springframework.web.reactive.function.UnsupportedMediaTypeException;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import reactor.core.publisher.Mono;
 
-import java.net.URL;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
@@ -37,8 +36,11 @@ public class AdvancedConversationService {
     private final ForbiddenProxyService forbiddenProxyService;
     private final RetriesRequestService retriesRequestService;
 
-    @Value("${app.proxy.retries}")
+    @Value("${app.proxy.retries.attempts}")
     private Integer retries;
+
+    @Value("${app.proxy.retries.exponent}")
+    private Double exponent;
 
     public Mono<Result> getProxiedResult(ProxyRequestParams params) {
         String requestId = UUID.randomUUID().toString();
@@ -92,6 +94,7 @@ public class AdvancedConversationService {
                                     RetriesRequest retriesRequest = new RetriesRequest();
                                     retriesRequest.setRequestId(requestId);
                                     retriesRequest.setRetries(retries);
+                                    retriesRequest.setTimeout(1000L);
                                     return Mono.just(retriesRequest);
                                 }
                             }).flatMap(retriesRequest -> {
@@ -110,8 +113,8 @@ public class AdvancedConversationService {
                                             badUrl.setPoint(0);
                                         } else {
                                             badUrl.setPoint(badUrl.getPoint() + 1);
-                                            log.warn("Setting bad point for proxy - [{}:{}], points - {}, badUrl - {}", proxy.getHost(),
-                                                    proxy.getPort(), proxy.getBadProxyPoint(), badUrl);
+                                            log.warn("Setting bad point for proxy - [{}:{}], badUrl - {}", proxy.getHost(),
+                                                    proxy.getPort(), badUrl);
                                         }
                                     } else {
                                         ProxyInstance.BadUrl badUrl = new ProxyInstance.BadUrl();
@@ -124,12 +127,10 @@ public class AdvancedConversationService {
                                             Optional.ofNullable(e.getCause()).map(Throwable::getMessage).orElse(e.getMessage()));
                                     return Mono.just(ErrorResult.proxyConnectionError(params.getUrl(), e));
                                 }
+                                long exponentialTimeout = (long) (retriesRequest.getTimeout() * exponent);
+                                retriesRequest.setTimeout(exponentialTimeout);
                                 retriesRequestService.save(retriesRequest).subscribe();
-                                if (params.getTimeout() == 0L) {
-                                    params.setTimeout(4000L);
-                                } else {
-                                    params.setTimeout(params.getTimeout() + 3000L);
-                                }
+                                params.setTimeout(exponentialTimeout);
                                 return connectionErrorResult(e, params, requestId);
                             });
                 })

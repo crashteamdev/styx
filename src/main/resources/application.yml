@@ -36,7 +36,9 @@ spring:
 app:
   timeout-handler: 10
   proxy:
-    retries: 4
+    retries:
+      attempts: 4
+      exponent: 1.5
     timeout: 10000
     proxy-line:
       api-key: v3ityelj2eh53re1ukysymrx7ci0oaytsn0ozt33
