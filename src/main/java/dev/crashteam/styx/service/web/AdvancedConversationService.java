@@ -58,7 +58,7 @@ public class AdvancedConversationService {
                 .onErrorResume(Objects::nonNull, e -> {
                     log.error("Unknown error", e);
                     return Mono.just(ErrorResult.unknownError(params.getUrl(), e));
-                }).doOnSuccess(result -> retriesRequestService.deleteIfExistByRequestId(requestId).subscribe());
+                }).doFinally(result -> retriesRequestService.deleteIfExistByRequestId(requestId).subscribe());
 
     }
 
@@ -87,25 +87,11 @@ public class AdvancedConversationService {
                     }
                     log.warn("Retrying request because of exception - {}. Request id - {}", e.getMessage(), requestId);
                     return retriesRequestService.existsByRequestId(requestId)
-                            .flatMap(exist -> {
-                                if (exist) {
-                                    return retriesRequestService.findByRequestId(requestId);
-                                } else {
-                                    RetriesRequest retriesRequest = new RetriesRequest();
-                                    retriesRequest.setRequestId(requestId);
-                                    retriesRequest.setRetries(retries);
-                                    retriesRequest.setTimeout(1000L);
-                                    return Mono.just(retriesRequest);
-                                }
-                            }).flatMap(retriesRequest -> {
-                                Optional<ProxyInstance.BadUrl> badUrlOptional = proxy.getBadUrls()
-                                        .stream()
-                                        .filter(it -> rootUrl.equals(it.getUrl()))
-                                        .findFirst();
-
+                            .flatMap(exist -> getRetriesRequest(exist, requestId))
+                            .flatMap(retriesRequest -> {
+                                Optional<ProxyInstance.BadUrl> badUrlOptional = getOptionalBadUrl(proxy, rootUrl);
                                 retriesRequest.setRetries(retriesRequest.getRetries() - 1);
                                 if (retriesRequest.getRetries() == 0) {
-                                    retriesRequestService.deleteByRequestId(requestId).subscribe();
                                     if (badUrlOptional.isPresent()) {
                                         ProxyInstance.BadUrl badUrl = badUrlOptional.get();
                                         if (badUrl.getPoint() >= 3) {
@@ -119,6 +105,7 @@ public class AdvancedConversationService {
                                     } else {
                                         ProxyInstance.BadUrl badUrl = new ProxyInstance.BadUrl();
                                         badUrl.setUrl(rootUrl);
+                                        badUrl.setPoint(1);
                                         proxy.getBadUrls().add(badUrl);
                                     }
                                     proxyService.saveExisting(proxy);
@@ -137,10 +124,7 @@ public class AdvancedConversationService {
                 .onErrorResume(throwable -> throwable instanceof ProxyGlobalException,
                         e -> Mono.just(ErrorResult.unknownError(params.getUrl(), e)))
                 .doOnSuccess(result -> {
-                    Optional<ProxyInstance.BadUrl> badUrl = proxy.getBadUrls()
-                            .stream()
-                            .filter(it -> rootUrl.equals(it.getUrl()))
-                            .findFirst();
+                    Optional<ProxyInstance.BadUrl> badUrl = getOptionalBadUrl(proxy, rootUrl);
                     if (!(result instanceof ErrorResult) && (badUrl.isPresent() && badUrl.get().getPoint() > 0)) {
                         log.warn("Reset to zero bad points for proxy - [{}:{}]", proxy.getHost(), proxy.getPort());
                         badUrl.get().setPoint(0);
@@ -209,5 +193,24 @@ public class AdvancedConversationService {
                         "response code from proxied client - %s").formatted(response.rawStatusCode()), body,
                         response.rawStatusCode())));
 
+    }
+
+    private Optional<ProxyInstance.BadUrl> getOptionalBadUrl(ProxyInstance proxy, String rootUrl) {
+        return proxy.getBadUrls()
+                .stream()
+                .filter(it -> rootUrl.equals(it.getUrl()))
+                .findFirst();
+    }
+
+    private Mono<RetriesRequest> getRetriesRequest(boolean exist, String requestId) {
+        if (exist) {
+            return retriesRequestService.findByRequestId(requestId);
+        } else {
+            RetriesRequest retriesRequest = new RetriesRequest();
+            retriesRequest.setRequestId(requestId);
+            retriesRequest.setRetries(retries);
+            retriesRequest.setTimeout(1000L);
+            return Mono.just(retriesRequest);
+        }
     }
 }

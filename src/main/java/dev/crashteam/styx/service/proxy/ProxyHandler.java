@@ -33,7 +33,7 @@ public class ProxyHandler {
     public void fillRedisCacheOnSchedule() {
         log.info("Filling redis cache with proxy values...");
         LockAssert.assertLocked();
-        fillRedisCacheWithinTransaction();
+        fillRedisCache();
     }
 
     @Scheduled(cron = "${application.scheduler.redis.forbidden-url-cron}")
@@ -67,8 +67,6 @@ public class ProxyHandler {
         proxyService.saveAll(defaultProxyFlux)
                 .subscribe();
     }
-
-    @Transactional
     public void fillRedisCacheWithinTransaction() {
         final Flux<ProxyInstance> defaultProxyFlux = Flux.fromIterable(proxyProviders)
                 .flatMap(ProxyProvider::getProxy);
