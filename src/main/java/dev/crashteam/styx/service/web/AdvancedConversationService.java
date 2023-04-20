@@ -52,7 +52,7 @@ public class AdvancedConversationService {
                         return proxyService.getRandomProxy(params.getTimeout(), params.getUrl())
                                 .flatMap(proxy -> getProxiedResponse(params, proxy, requestId));
                     } else {
-                        return getWebClientResponse(params)
+                        return getWebClientResponse(params, requestId)
                                 .delaySubscription(Duration.ofMillis(params.getTimeout()));
                     }
                 })
@@ -120,7 +120,7 @@ public class AdvancedConversationService {
                                     log.error("Proxy - [{}:{}] request failed, URL - {}, HttpMethod - {}. Error - {}", proxy.getHost(),
                                             proxy.getPort(), params.getUrl(), params.getHttpMethod(),
                                             Optional.ofNullable(e.getCause()).map(Throwable::getMessage).orElse(e.getMessage()));
-                                    return Mono.just(ErrorResult.proxyConnectionError(params.getUrl(), e));
+                                    return getWebClientResponse(params, requestId);
                                 }
                                 long exponentialTimeout = (long) (retriesRequest.getTimeout() * exponent);
                                 retriesRequest.setTimeout(exponentialTimeout);
@@ -142,8 +142,9 @@ public class AdvancedConversationService {
 
     }
 
-    private Mono<Result> getWebClientResponse(ProxyRequestParams params) {
-        log.warn("No active proxies available, sending request as is on url - [{}]", params.getUrl());
+    private Mono<Result> getWebClientResponse(ProxyRequestParams params, String requestId) {
+        log.warn("No active proxies available or retries request with id [{}] exhausted, " +
+                "sending request as is on url - [{}]", requestId, params.getUrl());
         return webClientService.getWebclientWithHttpMethod(params)
                 .retrieve()
                 .onStatus(httpStatus -> !httpStatus.is2xxSuccessful(), this::getMonoError)
@@ -174,7 +175,7 @@ public class AdvancedConversationService {
                         return proxyService.getRandomProxy(params.getTimeout(), params.getUrl()).flatMap(proxy ->
                                 getProxiedResponse(params, proxy, requestId));
                     } else {
-                        return getWebClientResponse(params)
+                        return getWebClientResponse(params, requestId)
                                 .delaySubscription(Duration.ofMillis(params.getTimeout()));
                     }
                 });
