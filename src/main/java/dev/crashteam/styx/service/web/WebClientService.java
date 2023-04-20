@@ -133,17 +133,21 @@ public class WebClientService {
         if (optValue.isPresent()) {
             try {
                 Map<String, String> map = (Map<String, String>) optValue.get();
-                map.forEach((k, v) -> {
-                    if (v.equals("random_uuid()")) {
-                        map.put(k, UUID.randomUUID().toString());
-                    }
-                });
                 headers.putAll(map);
             } catch (Exception e) {
                 throw new HeadersParseException(e.getMessage(), e.getCause());
             }
         }
+        applyHeaderFunctions(headers);
         return headers;
+    }
+
+    private void applyHeaderFunctions(Map<String, String> headers) {
+        headers.forEach((k, v) -> {
+            if (v.equals("random_uuid()")) {
+                headers.put(k, UUID.randomUUID().toString());
+            }
+        });
     }
 
     private String getContentType(List<ProxyRequestParams.ContextValue> context) {
