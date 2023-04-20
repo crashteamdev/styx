@@ -11,6 +11,7 @@ import dev.crashteam.styx.model.web.Result;
 import dev.crashteam.styx.service.forbidden.ForbiddenProxyService;
 import dev.crashteam.styx.service.proxy.CachedProxyService;
 import dev.crashteam.styx.util.AdvancedProxyUtils;
+import io.netty.handler.proxy.ProxyConnectException;
 import io.netty.handler.timeout.ReadTimeoutException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -81,6 +82,12 @@ public class AdvancedConversationService {
                     return Mono.just(ErrorResult.originalRequestError(requestException.getStatusCode(), params.getUrl(),
                             e, requestException.getBody()));
                 })
+                .onErrorResume(throwable -> (throwable instanceof ProxyConnectException ||
+                        (throwable.getCause() != null && throwable.getCause() instanceof ProxyConnectException)), e -> {
+                    log.error("Proxy connection exception for url - {}, trying another proxy", rootUrl);
+                    forbiddenProxyService.save(rootUrl, proxy);
+                    return connectionErrorResult(e, params, requestId);
+                })
                 .onErrorResume(AdvancedProxyUtils::badProxyError, e -> {
                     if (e.getCause() instanceof UnsupportedMediaTypeException) {
                         return Mono.just(ErrorResult.unknownError(params.getUrl(), e));
@@ -92,6 +99,7 @@ public class AdvancedConversationService {
                                 Optional<ProxyInstance.BadUrl> badUrlOptional = getOptionalBadUrl(proxy, rootUrl);
                                 retriesRequest.setRetries(retriesRequest.getRetries() - 1);
                                 if (retriesRequest.getRetries() == 0) {
+                                    retriesRequestService.deleteByRequestId(requestId).subscribe();
                                     if (badUrlOptional.isPresent()) {
                                         ProxyInstance.BadUrl badUrl = badUrlOptional.get();
                                         if (badUrl.getPoint() >= 3) {

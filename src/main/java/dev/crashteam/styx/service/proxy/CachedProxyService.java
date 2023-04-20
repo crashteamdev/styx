@@ -16,6 +16,7 @@ import reactor.core.publisher.Mono;
 import java.net.URL;
 import java.time.Duration;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +39,8 @@ public class CachedProxyService {
     }
 
     public void saveExisting(ProxyInstance proxy) {
+        String badUrls = proxy.getBadUrls().stream().map(ProxyInstance.BadUrl::getUrl).collect(Collectors.joining(","));
+        log.warn("Saving proxy [{}:{}] with bad urls - {}", proxy.getHost(), proxy.getPort(), badUrls);
         proxyRepository.saveExisting(proxy).subscribe();
     }
 
