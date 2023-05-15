@@ -5,6 +5,7 @@ on:
     branches:
       - 'master'
       - 'main'
+      - 'pre-release*'
 
 jobs:
   deploy:

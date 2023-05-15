@@ -7,7 +7,6 @@ import dev.crashteam.styx.model.request.RetriesRequest;
 import lombok.RequiredArgsConstructor;
 import net.javacrumbs.shedlock.core.LockProvider;
 import net.javacrumbs.shedlock.provider.redis.spring.ReactiveRedisLockProvider;
-import org.springframework.boot.autoconfigure.data.redis.LettuceClientConfigurationBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
@@ -57,11 +56,6 @@ public class RedisConfiguration {
                 .hashValue(new GenericJackson2JsonRedisSerializer())
                 .build();
         return new ReactiveRedisTemplate<>(connectionFactory, serializationContext);
-    }
-
-    @Bean
-    public LettuceClientConfigurationBuilderCustomizer builderCustomizer() {
-        return clientConfigurationBuilder -> clientConfigurationBuilder.useSsl().disablePeerVerification();
     }
 
     @Bean
