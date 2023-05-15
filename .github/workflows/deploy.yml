@@ -5,7 +5,7 @@ on:
     branches:
       - 'master'
       - 'main'
-      - 'pre-release.**'
+      - 'pre-release/k8s'
 
 jobs:
   deploy:
