@@ -36,6 +36,8 @@ spring:
 app:
   timeout-handler: 10
   proxy:
+    log:
+      response: false
     retries:
       attempts: 4
       exponent: 1.5

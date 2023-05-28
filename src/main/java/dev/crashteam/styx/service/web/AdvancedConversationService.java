@@ -43,6 +43,9 @@ public class AdvancedConversationService {
     @Value("${app.proxy.retries.exponent}")
     private Double exponent;
 
+    @Value("${app.proxy.log.response}")
+    private boolean logResponse;
+
     public Mono<Result> getProxiedResult(ProxyRequestParams params) {
         String requestId = UUID.randomUUID().toString();
         return proxyService.getRandomProxy(0L, params.getUrl())
@@ -50,10 +53,20 @@ public class AdvancedConversationService {
                 .flatMap(hasElement -> {
                     if (hasElement) {
                         return proxyService.getRandomProxy(params.getTimeout(), params.getUrl())
-                                .flatMap(proxy -> getProxiedResponse(params, proxy, requestId));
+                                .flatMap(proxy -> getProxiedResponse(params, proxy, requestId))
+                                .doOnSuccess(result -> {
+                                    if (logResponse) {
+                                        log.info("----RESPONSE----\n{}", result.getBody());
+                                    }
+                                });
                     } else {
                         return getWebClientResponse(params, requestId)
-                                .delaySubscription(Duration.ofMillis(params.getTimeout()));
+                                .delaySubscription(Duration.ofMillis(params.getTimeout()))
+                                .doOnSuccess(result -> {
+                                    if (logResponse) {
+                                        log.info("----RESPONSE----\n{}", result.getBody());
+                                    }
+                                });
                     }
                 })
                 .onErrorResume(Objects::nonNull, e -> {
