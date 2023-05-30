@@ -4,6 +4,7 @@ import dev.crashteam.styx.exception.OriginalRequestException;
 import dev.crashteam.styx.exception.ProxyForbiddenException;
 import dev.crashteam.styx.exception.ProxyGlobalException;
 import dev.crashteam.styx.model.proxy.ProxyInstance;
+import dev.crashteam.styx.model.proxy.ProxySource;
 import dev.crashteam.styx.model.request.RetriesRequest;
 import dev.crashteam.styx.model.web.ErrorResult;
 import dev.crashteam.styx.model.web.ProxyRequestParams;
@@ -11,6 +12,7 @@ import dev.crashteam.styx.model.web.Result;
 import dev.crashteam.styx.service.forbidden.ForbiddenProxyService;
 import dev.crashteam.styx.service.proxy.CachedProxyService;
 import dev.crashteam.styx.util.AdvancedProxyUtils;
+import io.netty.handler.proxy.ProxyConnectException;
 import io.netty.handler.timeout.ReadTimeoutException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,23 +51,30 @@ public class AdvancedConversationService {
                 .flatMap(hasElement -> {
                     if (hasElement) {
                         return proxyService.getRandomProxy(params.getTimeout(), params.getUrl())
-                                .flatMap(proxy -> getProxiedResponse(params, proxy, requestId));
+                                .flatMap(proxy -> getProxiedResponse(params, proxy, requestId))
+                                .doOnSuccess(result -> {
+                                    log.debug("----RESPONSE----\n{}", result.getBody());
+                                });
                     } else {
-                        return getWebClientResponse(params)
-                                .delaySubscription(Duration.ofMillis(params.getTimeout()));
+                        return getWebClientResponse(params, requestId)
+                                .delaySubscription(Duration.ofMillis(params.getTimeout()))
+                                .doOnSuccess(result -> {
+                                    log.debug("----RESPONSE----\n{}", result.getBody());
+                                });
                     }
                 })
                 .onErrorResume(Objects::nonNull, e -> {
                     log.error("Unknown error", e);
                     return Mono.just(ErrorResult.unknownError(params.getUrl(), e));
-                }).doOnSuccess(result -> retriesRequestService.deleteIfExistByRequestId(requestId).subscribe());
+                }).doFinally(result -> retriesRequestService.deleteIfExistByRequestId(requestId).subscribe());
 
     }
 
     private Mono<Result> getProxiedResponse(ProxyRequestParams params, ProxyInstance proxy, String requestId) {
         log.info("Sending request via proxy - [{}:{}]. URL - {}, HttpMethod - {}. Proxy source - {}",
                 proxy.getHost(), proxy.getPort(),
-                params.getUrl(), params.getHttpMethod(), proxy.getProxySource().getValue());
+                params.getUrl(), params.getHttpMethod(), Optional.ofNullable(proxy.getProxySource())
+                        .map(ProxySource::getValue).orElse("Unknown"));
         String rootUrl = AdvancedProxyUtils.getRootUrl(params.getUrl());
         return webClientService.getProxiedWebclientWithHttpMethod(params, proxy)
                 .retrieve()
@@ -81,28 +90,21 @@ public class AdvancedConversationService {
                     return Mono.just(ErrorResult.originalRequestError(requestException.getStatusCode(), params.getUrl(),
                             e, requestException.getBody()));
                 })
+                .onErrorResume(throwable -> (throwable instanceof ProxyConnectException ||
+                        (throwable.getCause() != null && throwable.getCause() instanceof ProxyConnectException)), e -> {
+                    log.error("Proxy connection exception for url - {}, trying another proxy", rootUrl);
+                    forbiddenProxyService.save(rootUrl, proxy);
+                    return connectionErrorResult(e, params, requestId);
+                })
                 .onErrorResume(AdvancedProxyUtils::badProxyError, e -> {
                     if (e.getCause() instanceof UnsupportedMediaTypeException) {
                         return Mono.just(ErrorResult.unknownError(params.getUrl(), e));
                     }
                     log.warn("Retrying request because of exception - {}. Request id - {}", e.getMessage(), requestId);
                     return retriesRequestService.existsByRequestId(requestId)
-                            .flatMap(exist -> {
-                                if (exist) {
-                                    return retriesRequestService.findByRequestId(requestId);
-                                } else {
-                                    RetriesRequest retriesRequest = new RetriesRequest();
-                                    retriesRequest.setRequestId(requestId);
-                                    retriesRequest.setRetries(retries);
-                                    retriesRequest.setTimeout(1000L);
-                                    return Mono.just(retriesRequest);
-                                }
-                            }).flatMap(retriesRequest -> {
-                                Optional<ProxyInstance.BadUrl> badUrlOptional = proxy.getBadUrls()
-                                        .stream()
-                                        .filter(it -> rootUrl.equals(it.getUrl()))
-                                        .findFirst();
-
+                            .flatMap(exist -> getRetriesRequest(exist, requestId))
+                            .flatMap(retriesRequest -> {
+                                Optional<ProxyInstance.BadUrl> badUrlOptional = getOptionalBadUrl(proxy, rootUrl);
                                 retriesRequest.setRetries(retriesRequest.getRetries() - 1);
                                 if (retriesRequest.getRetries() == 0) {
                                     retriesRequestService.deleteByRequestId(requestId).subscribe();
@@ -119,13 +121,14 @@ public class AdvancedConversationService {
                                     } else {
                                         ProxyInstance.BadUrl badUrl = new ProxyInstance.BadUrl();
                                         badUrl.setUrl(rootUrl);
+                                        badUrl.setPoint(1);
                                         proxy.getBadUrls().add(badUrl);
                                     }
                                     proxyService.saveExisting(proxy);
                                     log.error("Proxy - [{}:{}] request failed, URL - {}, HttpMethod - {}. Error - {}", proxy.getHost(),
                                             proxy.getPort(), params.getUrl(), params.getHttpMethod(),
                                             Optional.ofNullable(e.getCause()).map(Throwable::getMessage).orElse(e.getMessage()));
-                                    return Mono.just(ErrorResult.proxyConnectionError(params.getUrl(), e));
+                                    return getWebClientResponse(params, requestId);
                                 }
                                 long exponentialTimeout = (long) (retriesRequest.getTimeout() * exponent);
                                 retriesRequest.setTimeout(exponentialTimeout);
@@ -137,10 +140,7 @@ public class AdvancedConversationService {
                 .onErrorResume(throwable -> throwable instanceof ProxyGlobalException,
                         e -> Mono.just(ErrorResult.unknownError(params.getUrl(), e)))
                 .doOnSuccess(result -> {
-                    Optional<ProxyInstance.BadUrl> badUrl = proxy.getBadUrls()
-                            .stream()
-                            .filter(it -> rootUrl.equals(it.getUrl()))
-                            .findFirst();
+                    Optional<ProxyInstance.BadUrl> badUrl = getOptionalBadUrl(proxy, rootUrl);
                     if (!(result instanceof ErrorResult) && (badUrl.isPresent() && badUrl.get().getPoint() > 0)) {
                         log.warn("Reset to zero bad points for proxy - [{}:{}]", proxy.getHost(), proxy.getPort());
                         badUrl.get().setPoint(0);
@@ -150,8 +150,9 @@ public class AdvancedConversationService {
 
     }
 
-    private Mono<Result> getWebClientResponse(ProxyRequestParams params) {
-        log.warn("No active proxies available, sending request as is on url - [{}]", params.getUrl());
+    private Mono<Result> getWebClientResponse(ProxyRequestParams params, String requestId) {
+        log.warn("No active proxies available or retries request with id [{}] exhausted, " +
+                "sending request as is on url - [{}]", requestId, params.getUrl());
         return webClientService.getWebclientWithHttpMethod(params)
                 .retrieve()
                 .onStatus(httpStatus -> !httpStatus.is2xxSuccessful(), this::getMonoError)
@@ -182,7 +183,7 @@ public class AdvancedConversationService {
                         return proxyService.getRandomProxy(params.getTimeout(), params.getUrl()).flatMap(proxy ->
                                 getProxiedResponse(params, proxy, requestId));
                     } else {
-                        return getWebClientResponse(params)
+                        return getWebClientResponse(params, requestId)
                                 .delaySubscription(Duration.ofMillis(params.getTimeout()));
                     }
                 });
@@ -209,5 +210,24 @@ public class AdvancedConversationService {
                         "response code from proxied client - %s").formatted(response.rawStatusCode()), body,
                         response.rawStatusCode())));
 
+    }
+
+    private Optional<ProxyInstance.BadUrl> getOptionalBadUrl(ProxyInstance proxy, String rootUrl) {
+        return proxy.getBadUrls()
+                .stream()
+                .filter(it -> rootUrl.equals(it.getUrl()))
+                .findFirst();
+    }
+
+    private Mono<RetriesRequest> getRetriesRequest(boolean exist, String requestId) {
+        if (exist) {
+            return retriesRequestService.findByRequestId(requestId);
+        } else {
+            RetriesRequest retriesRequest = new RetriesRequest();
+            retriesRequest.setRequestId(requestId);
+            retriesRequest.setRetries(retries);
+            retriesRequest.setTimeout(1000L);
+            return Mono.just(retriesRequest);
+        }
     }
 }

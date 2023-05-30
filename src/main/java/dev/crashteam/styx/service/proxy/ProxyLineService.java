@@ -32,7 +32,7 @@ public class ProxyLineService implements ProxyProvider {
                     proxyInstance.setHost(p.getIp());
                     proxyInstance.setPort(p.getPortHttp());
                     proxyInstance.setActive(true);
-                    proxyInstance.setProxySource(ProxySource.PROXY_LINE);
+                    //proxyInstance.setProxySource(ProxySource.PROXY_LINE);
                     proxyInstance.setUser(p.getUser());
                     proxyInstance.setBadUrls(new CopyOnWriteArrayList<>());
                     proxyInstance.setPassword(p.getPassword());
