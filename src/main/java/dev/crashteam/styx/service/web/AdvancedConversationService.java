@@ -4,6 +4,7 @@ import dev.crashteam.styx.exception.OriginalRequestException;
 import dev.crashteam.styx.exception.ProxyForbiddenException;
 import dev.crashteam.styx.exception.ProxyGlobalException;
 import dev.crashteam.styx.model.proxy.ProxyInstance;
+import dev.crashteam.styx.model.proxy.ProxySource;
 import dev.crashteam.styx.model.request.RetriesRequest;
 import dev.crashteam.styx.model.web.ErrorResult;
 import dev.crashteam.styx.model.web.ProxyRequestParams;
@@ -72,7 +73,8 @@ public class AdvancedConversationService {
     private Mono<Result> getProxiedResponse(ProxyRequestParams params, ProxyInstance proxy, String requestId) {
         log.info("Sending request via proxy - [{}:{}]. URL - {}, HttpMethod - {}. Proxy source - {}",
                 proxy.getHost(), proxy.getPort(),
-                params.getUrl(), params.getHttpMethod(), proxy.getProxySource().getValue());
+                params.getUrl(), params.getHttpMethod(), Optional.ofNullable(proxy.getProxySource())
+                        .map(ProxySource::getValue).orElse("Unknown"));
         String rootUrl = AdvancedProxyUtils.getRootUrl(params.getUrl());
         return webClientService.getProxiedWebclientWithHttpMethod(params, proxy)
                 .retrieve()
