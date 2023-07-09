@@ -57,15 +57,13 @@ public class AdvancedProxyUtils {
     }
 
     public static boolean badProxyError(Throwable throwable) {
-        return throwable instanceof ConnectException
-                || throwable instanceof SslHandshakeTimeoutException
-                || throwable instanceof ReadTimeoutException
-                || throwable instanceof ProxyForbiddenException
-                || (throwable.getCause() != null && throwable.getCause() instanceof ConnectException)
-                || (throwable.getCause() != null && throwable.getCause() instanceof SslHandshakeTimeoutException)
-                || (throwable.getCause() != null && throwable.getCause() instanceof HttpProxyHandler.HttpProxyConnectException)
-                || (throwable.getCause() != null && throwable.getCause() instanceof ReadTimeoutException)
-                || (throwable.getCause() != null && throwable.getCause() instanceof ProxyForbiddenException);
+        return throwable instanceof SslHandshakeTimeoutException
+                        || throwable instanceof ReadTimeoutException
+                        || throwable instanceof ProxyForbiddenException
+                        || (throwable.getCause() != null && throwable.getCause() instanceof SslHandshakeTimeoutException)
+                        || (throwable.getCause() != null && throwable.getCause() instanceof HttpProxyHandler.HttpProxyConnectException)
+                        || (throwable.getCause() != null && throwable.getCause() instanceof ReadTimeoutException)
+                        || (throwable.getCause() != null && throwable.getCause() instanceof ProxyForbiddenException);
     }
 
     public static Mono<ProxyInstance> getRandomProxy(Long timeout, Flux<ProxyInstance> activeProxies) {

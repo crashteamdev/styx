@@ -23,6 +23,7 @@ import org.springframework.web.reactive.function.UnsupportedMediaTypeException;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import reactor.core.publisher.Mono;
 
+import java.net.ConnectException;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
@@ -90,7 +91,8 @@ public class AdvancedConversationService {
                     return Mono.just(ErrorResult.originalRequestError(requestException.getStatusCode(), params.getUrl(),
                             e, requestException.getBody()));
                 })
-                .onErrorResume(throwable -> (throwable instanceof ProxyConnectException ||
+                .onErrorResume(throwable -> (throwable.getCause() != null && throwable.getCause() instanceof ConnectException) ||
+                        (throwable instanceof ProxyConnectException ||
                         (throwable.getCause() != null && throwable.getCause() instanceof ProxyConnectException)), e -> {
                     log.error("Proxy connection exception for url - {}, trying another proxy", rootUrl);
                     forbiddenProxyService.save(rootUrl, proxy);
