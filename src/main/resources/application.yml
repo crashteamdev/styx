@@ -39,7 +39,7 @@ app:
     retries:
       attempts: 4
       exponent: 1.5
-    timeout: 10000
+    timeout: 5000
     proxy-line:
       api-key:
       url:

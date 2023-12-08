@@ -82,7 +82,7 @@ public class AdvancedConversationService {
                 .onStatus(httpStatus -> !httpStatus.is2xxSuccessful() && !httpStatus.equals(HttpStatus.FORBIDDEN), this::getMonoError)
                 .onStatus(httpStatus -> httpStatus.equals(HttpStatus.FORBIDDEN), this::getForbiddenError)
                 .toEntity(Object.class)
-                .timeout(Duration.ofMillis(4000L), Mono.error(new ReadTimeoutException("Timeout")))
+                //.timeout(Duration.ofMillis(4000L), Mono.error(new ReadTimeoutException("Timeout")))
                 .map(response -> Result.success(response.getStatusCodeValue(), params.getUrl(), response.getBody(),
                         params.getHttpMethod()))
                 .onErrorResume(throwable -> throwable instanceof OriginalRequestException, e -> {

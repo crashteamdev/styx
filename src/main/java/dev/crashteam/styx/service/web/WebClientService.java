@@ -100,7 +100,7 @@ public class WebClientService {
                 .doOnConnected(conn -> conn
                         .addHandlerLast(new ReadTimeoutHandler(handlerTimeout))
                         .addHandlerLast(new WriteTimeoutHandler(handlerTimeout)))
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, proxyConnectionTimeout);
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000);
         return new ReactorClientHttpConnector(httpClient);
     }
 
@@ -109,13 +109,14 @@ public class WebClientService {
                 .doOnConnected(conn -> conn
                         .addHandlerLast(new ReadTimeoutHandler(handlerTimeout))
                         .addHandlerLast(new WriteTimeoutHandler(handlerTimeout)))
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, proxyConnectionTimeout)
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000)
                 .proxy(p ->
                         p.type(ProxyProvider.Proxy.HTTP)
                                 .host(proxy.getHost())
                                 .port(Integer.parseInt(proxy.getPort()))
                                 .username(proxy.getUser())
-                                .password(f -> proxy.getPassword()));
+                                .password(f -> proxy.getPassword())
+                                .connectTimeoutMillis(proxyConnectionTimeout));
         return new ReactorClientHttpConnector(httpClient);
     }
 
