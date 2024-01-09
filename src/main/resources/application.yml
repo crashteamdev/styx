@@ -34,7 +34,7 @@ spring:
     password:
     ssl: true
 app:
-  timeout-handler: 10
+  timeout-handler: 20
   proxy:
     retries:
       attempts: 4
