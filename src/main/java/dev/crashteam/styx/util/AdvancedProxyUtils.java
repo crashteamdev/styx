@@ -49,6 +49,8 @@ public class AdvancedProxyUtils {
                     exception instanceof NoContentTypeHeaderException ||
                     exception instanceof NonValidHttpMethodException) {
                 return ResponseEntity.badRequest().body(result);
+            } else if (errorResult.getException() instanceof OriginalRequestException) {
+                return ResponseEntity.ok(result);
             } else {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
             }
@@ -58,12 +60,12 @@ public class AdvancedProxyUtils {
 
     public static boolean badProxyError(Throwable throwable) {
         return throwable instanceof SslHandshakeTimeoutException
-                        || throwable instanceof ReadTimeoutException
-                        || throwable instanceof ProxyForbiddenException
-                        || (throwable.getCause() != null && throwable.getCause() instanceof SslHandshakeTimeoutException)
-                        || (throwable.getCause() != null && throwable.getCause() instanceof HttpProxyHandler.HttpProxyConnectException)
-                        || (throwable.getCause() != null && throwable.getCause() instanceof ReadTimeoutException)
-                        || (throwable.getCause() != null && throwable.getCause() instanceof ProxyForbiddenException);
+                || throwable instanceof ReadTimeoutException
+                || throwable instanceof ProxyForbiddenException
+                || (throwable.getCause() != null && throwable.getCause() instanceof SslHandshakeTimeoutException)
+                || (throwable.getCause() != null && throwable.getCause() instanceof HttpProxyHandler.HttpProxyConnectException)
+                || (throwable.getCause() != null && throwable.getCause() instanceof ReadTimeoutException)
+                || (throwable.getCause() != null && throwable.getCause() instanceof ProxyForbiddenException);
     }
 
     public static Mono<ProxyInstance> getRandomProxy(Long timeout, Flux<ProxyInstance> activeProxies) {
