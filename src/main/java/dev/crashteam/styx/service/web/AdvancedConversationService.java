@@ -65,7 +65,8 @@ public class AdvancedConversationService {
                     }
                 })
                 .onErrorResume(Objects::nonNull, e -> {
-                    log.error("Unknown error", e);
+                    String cause = Optional.ofNullable(e.getCause()).map(Throwable::getMessage).orElse(e.getMessage());
+                    log.error("Unknown error for request id - {}. Cause - {}", requestId, cause, e);
                     return Mono.just(ErrorResult.unknownError(params.getUrl(), e));
                 }).doFinally(result -> retriesRequestService.deleteIfExistByRequestId(requestId).subscribe());
 
