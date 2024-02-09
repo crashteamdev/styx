@@ -16,10 +16,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Service
 public class ProxyLineService implements ProxyProvider {
 
-    @Value("${app.proxy.proxy-line.url}")
+    @Value("${integration.proxy-line.url}")
     private String proxyUrl;
 
-    @Value("${app.proxy.proxy-line.api-key}")
+    @Value("${integration.proxy-line.api-key}")
     private String apiKey;
 
     @Override

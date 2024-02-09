@@ -40,9 +40,11 @@ app:
       attempts: 4
       exponent: 1.5
     timeout: 5000
-    proxy-line:
-      api-key:
-      url:
+
+integration:
+  proxy-line:
+    api-key:
+    url: https://panel.proxyline.net/api/
 
 loki:
   host: localhost
