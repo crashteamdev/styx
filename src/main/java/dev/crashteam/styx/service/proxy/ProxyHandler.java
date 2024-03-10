@@ -62,13 +62,9 @@ public class ProxyHandler {
 
     @PostConstruct
     private void fillRedisCache() {
-        final Flux<ProxyInstance> externalProxies = Flux.fromIterable(proxyProviders)
+        final Flux<ProxyInstance> defaultProxyFlux = Flux.fromIterable(proxyProviders)
                 .flatMap(ProxyProvider::getProxy);
-        Flux<ProxyInstance> proxyForDeletion = proxyService.findAll()
-                .filterWhen(proxyInstance -> externalProxies.all(it -> !proxyInstance.equals(it)));
-        proxyService.saveAll(externalProxies)
-                .subscribe();
-        proxyForDeletion.doOnNext(proxyService::deleteByHashKey)
+        proxyService.saveAll(defaultProxyFlux)
                 .subscribe();
     }
     public void fillRedisCacheWithinTransaction() {
