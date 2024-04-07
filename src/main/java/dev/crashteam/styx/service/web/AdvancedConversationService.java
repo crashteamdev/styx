@@ -227,7 +227,7 @@ public class AdvancedConversationService {
             RetriesRequest retriesRequest = new RetriesRequest();
             retriesRequest.setRequestId(requestId);
             retriesRequest.setRetries(retries);
-            retriesRequest.setTimeout(1000L);
+            retriesRequest.setTimeout(2000L);
             return Mono.just(retriesRequest);
         }
     }
