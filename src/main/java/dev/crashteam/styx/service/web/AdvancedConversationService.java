@@ -60,7 +60,7 @@ public class AdvancedConversationService {
                         return proxyInstance
                                 .flatMap(proxy -> {
                                     if (ProxySource.MOBILE_PROXY.equals(proxy.getProxySource())) {
-                                        return getProxiedResponse(params, proxy);
+                                        return getMobileProxyProxiedResponse(params, proxy, requestId);
                                     } else {
                                         return getProxiedResponse(params, proxy, requestId);
                                     }
@@ -84,10 +84,10 @@ public class AdvancedConversationService {
 
     }
 
-    private Mono<Result> getProxiedResponse(ProxyRequestParams params, ProxyInstance proxy) {
-        log.info("Sending request via proxy - [{}:{}]. URL - {}, HttpMethod - {}. Proxy source - {}",
+    private Mono<Result> getMobileProxyProxiedResponse(ProxyRequestParams params, ProxyInstance proxy, String requestId) {
+        log.info("Sending request via proxy - [{}:{}]. URL - {}, HttpMethod - {}. RequestId - {}, Proxy source - {}",
                 proxy.getHost(), proxy.getPort(),
-                params.getUrl(), params.getHttpMethod(), Optional.ofNullable(proxy.getProxySource())
+                params.getUrl(), params.getHttpMethod(), requestId, Optional.ofNullable(proxy.getProxySource())
                         .map(ProxySource::getValue).orElse("Unknown"));
         return webClientService.getProxiedWebclientWithHttpMethod(params, proxy)
                 .retrieve()
@@ -97,8 +97,8 @@ public class AdvancedConversationService {
                 .map(response -> Result.success(response.getStatusCodeValue(), params.getUrl(), response.getBody(),
                         params.getHttpMethod()))
                 .onErrorResume(throwable -> throwable instanceof NonProxiedException,
-                        e -> getNonProxiedClientResponse(params, ""))
-                .retryWhen(Retry.backoff(4, Duration.ofSeconds(2))
+                        e -> getNonProxiedClientResponse(params, requestId))
+                .retryWhen(Retry.backoff(4, Duration.ofSeconds(1))
                         .filter(AdvancedProxyUtils::badProxyError)
                         .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
                             throw new NonProxiedException("Service failed to process after max retries");
@@ -260,7 +260,7 @@ public class AdvancedConversationService {
             RetriesRequest retriesRequest = new RetriesRequest();
             retriesRequest.setRequestId(requestId);
             retriesRequest.setRetries(retries);
-            retriesRequest.setTimeout(2000L);
+            retriesRequest.setTimeout(1000L);
             return Mono.just(retriesRequest);
         }
     }
