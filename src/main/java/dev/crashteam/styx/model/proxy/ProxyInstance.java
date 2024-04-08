@@ -11,6 +11,7 @@ public class ProxyInstance {
 
     private String host;
     private String port;
+    private String proxyKey;
     private Boolean active;
     private int badProxyPoint;
     private ProxySource proxySource;

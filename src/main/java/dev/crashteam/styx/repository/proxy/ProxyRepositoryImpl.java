@@ -2,6 +2,7 @@ package dev.crashteam.styx.repository.proxy;
 
 import dev.crashteam.styx.model.RedisKey;
 import dev.crashteam.styx.model.proxy.ProxyInstance;
+import dev.crashteam.styx.model.proxy.ProxySource;
 import dev.crashteam.styx.repository.forbidden.ForbiddenProxyRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
@@ -77,8 +78,14 @@ public class ProxyRepositoryImpl implements ProxyRepository {
         return hashOperations
                 .randomEntry(RedisKey.PROXY_KEY.getValue())
                 .map(Map.Entry::getValue)
+                .filter(it -> !ProxySource.MOBILE_PROXY.equals(it.getProxySource()))
                 .filterWhen(proxy -> forbiddenProxyRepository.notExistsByKey(proxy, rootUrl))
                 .switchIfEmpty(getRandomProxyNotIncludeForbidden(rootUrl, retry));
+    }
+
+    public Flux<ProxyInstance> getMobileProxies() {
+        return hashOperations.values(RedisKey.PROXY_KEY.getValue())
+                .filter(it -> ProxySource.MOBILE_PROXY.equals(it.getProxySource()));
     }
 
     @Override

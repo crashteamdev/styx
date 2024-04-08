@@ -2,6 +2,8 @@ package dev.crashteam.styx.service.proxy;
 
 import dev.crashteam.styx.model.proxy.ProxyInstance;
 import dev.crashteam.styx.service.forbidden.ForbiddenProxyService;
+import dev.crashteam.styx.service.proxy.CachedProxyService;
+import dev.crashteam.styx.service.proxy.provider.ProxyProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.core.LockAssert;
@@ -9,7 +11,6 @@ import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 

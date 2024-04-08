@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.crashteam.styx.model.proxy.ProxyLineResponse;
 import dev.crashteam.styx.service.proxy.CachedProxyService;
 import dev.crashteam.styx.service.proxy.ExternalSourceProxyService;
-import dev.crashteam.styx.service.proxy.ProxyLineService;
+import dev.crashteam.styx.service.proxy.provider.ProxyLineService;
 import dev.crashteam.styx.service.web.ConversationService;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Assertions;

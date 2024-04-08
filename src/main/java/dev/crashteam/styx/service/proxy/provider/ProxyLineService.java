@@ -1,4 +1,4 @@
-package dev.crashteam.styx.service.proxy;
+package dev.crashteam.styx.service.proxy.provider;
 
 import dev.crashteam.styx.model.proxy.ProxyInstance;
 import dev.crashteam.styx.model.proxy.ProxyLineResponse;
@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 
-import java.util.Collections;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 @Slf4j
@@ -32,10 +31,11 @@ public class ProxyLineService implements ProxyProvider {
                     proxyInstance.setHost(p.getIp());
                     proxyInstance.setPort(p.getPortHttp());
                     proxyInstance.setActive(true);
-                    //proxyInstance.setProxySource(ProxySource.PROXY_LINE);
+                    proxyInstance.setProxySource(ProxySource.PROXY_LINE);
                     proxyInstance.setUser(p.getUser());
                     proxyInstance.setBadUrls(new CopyOnWriteArrayList<>());
                     proxyInstance.setPassword(p.getPassword());
+                    proxyInstance.setProxyKey(null);
                     return proxyInstance;
                 });
 

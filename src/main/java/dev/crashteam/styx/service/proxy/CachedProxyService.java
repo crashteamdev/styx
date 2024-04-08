@@ -2,11 +2,8 @@ package dev.crashteam.styx.service.proxy;
 
 
 import dev.crashteam.styx.model.proxy.ProxyInstance;
-import dev.crashteam.styx.repository.forbidden.ForbiddenProxyRepository;
 import dev.crashteam.styx.repository.proxy.ProxyRepositoryImpl;
-import dev.crashteam.styx.util.AdvancedProxyUtils;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import org.springframework.stereotype.Service;
@@ -16,6 +13,7 @@ import reactor.core.publisher.Mono;
 import java.net.URL;
 import java.time.Duration;
 import java.util.List;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 @Service
@@ -48,10 +46,38 @@ public class CachedProxyService {
         return proxyRepository.getRandomProxy().delaySubscription(Duration.ofMillis(timeout));
     }
 
-    @SneakyThrows
     public Mono<ProxyInstance> getRandomProxy(Long timeout, String url) {
-        String rootUrl = new URL(url).toURI().resolve("/").toString();
+        String rootUrl;
+        try {
+            rootUrl = new URL(url).toURI().resolve("/").toString();
+        } catch (Exception e) {
+            log.error("Exception while resolving url - {}", url, e);
+            throw new RuntimeException(e);
+        }
         return proxyRepository.getRandomProxyNotIncludeForbidden(rootUrl, 20).delaySubscription(Duration.ofMillis(timeout));
+    }
+
+    public Mono<ProxyInstance> getRandomMobileProxy(Long timeout) {
+        Random random = new Random();
+        Flux<ProxyInstance> mobileProxies = proxyRepository.getMobileProxies();
+        return mobileProxies
+                .delaySubscription(Duration.ofMillis(timeout))
+                .count()
+                .map(s -> {
+                    if (s != null && s > 1) {
+                        return random.nextLong(s);
+                    }
+                    return 0L;
+                })
+                .flatMap(index -> mobileProxies
+                        .count()
+                        .filter(size -> size > 0)
+                        .flatMap(p -> mobileProxies.elementAt(Math.toIntExact(index))))
+                .switchIfEmpty(Mono.empty());
+    }
+
+    public Flux<ProxyInstance> getMobileProxies(Long timeout) {
+        return proxyRepository.getMobileProxies();
     }
 
     public Mono<ProxyInstance> save(ProxyInstance proxy) {

@@ -1,4 +1,4 @@
-package dev.crashteam.styx.service.proxy;
+package dev.crashteam.styx.service.proxy.provider;
 
 
 import dev.crashteam.styx.model.proxy.ProxyInstance;
