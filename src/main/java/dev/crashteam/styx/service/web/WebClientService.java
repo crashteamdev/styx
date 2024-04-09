@@ -6,11 +6,9 @@ import dev.crashteam.styx.exception.NonValidHttpMethodException;
 import dev.crashteam.styx.model.ContextKey;
 import dev.crashteam.styx.model.content.BaseResolver;
 import dev.crashteam.styx.model.proxy.ProxyInstance;
-import dev.crashteam.styx.model.proxy.ProxySource;
 import dev.crashteam.styx.model.web.ProxyRequestParams;
 import dev.crashteam.styx.util.AdvancedProxyUtils;
 import io.netty.channel.ChannelOption;
-import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
 import lombok.RequiredArgsConstructor;
@@ -25,10 +23,8 @@ import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
-import reactor.netty.tcp.SslProvider;
 import reactor.netty.transport.ProxyProvider;
 
-import java.time.Duration;
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -49,14 +45,11 @@ public class WebClientService {
         HttpMethod method = HttpMethod.resolve(params.getHttpMethod());
         if (method == null) throw new NonValidHttpMethodException("No such http method - " + params.getHttpMethod());
         List<ProxyRequestParams.ContextValue> context = params.getContext();
-        ReactorClientHttpConnector connector = ProxySource.MOBILE_PROXY.equals(proxy.getProxySource())
-                ? getMobileProxiedConnector(proxy)
-                : getProxiedConnector(proxy);
         WebClient.RequestBodyUriSpec client = WebClient.builder()
                 .exchangeStrategies(getMaxBufferSize())
                 .defaultHeaders(getHeadersConsumer(getHeaders(context)))
                 .baseUrl(params.getUrl())
-                .clientConnector(connector)
+                .clientConnector(getProxiedConnector(proxy))
                 .build()
                 .method(method);
         if (AdvancedProxyUtils.contextKeyExists(context, ContextKey.CONTENT)) {
@@ -124,25 +117,6 @@ public class WebClientService {
                                 .username(proxy.getUser())
                                 .password(f -> proxy.getPassword())
                                 .connectTimeoutMillis(proxyConnectionTimeout));
-        return new ReactorClientHttpConnector(httpClient);
-    }
-
-    private ReactorClientHttpConnector getMobileProxiedConnector(ProxyInstance proxy) {
-        HttpClient httpClient = HttpClient.create()
-                .doOnConnected(conn -> conn
-                        .addHandlerLast(new ReadTimeoutHandler(handlerTimeout))
-                        .addHandlerLast(new WriteTimeoutHandler(handlerTimeout)))
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 20000)
-                .proxy(p ->
-                        p.type(ProxyProvider.Proxy.HTTP)
-                                .host(proxy.getHost())
-                                .port(Integer.parseInt(proxy.getPort()))
-                                .username(proxy.getUser())
-                                .password(f -> proxy.getPassword())
-                                .connectTimeoutMillis(proxyConnectionTimeout))
-                .secure(spec -> spec.sslContext(SslContextBuilder.forClient())
-                        .defaultConfiguration(SslProvider.DefaultConfigurationType.TCP)
-                        .handshakeTimeout(Duration.ofSeconds(4)));
         return new ReactorClientHttpConnector(httpClient);
     }
 
