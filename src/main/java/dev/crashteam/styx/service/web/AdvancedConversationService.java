@@ -23,7 +23,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.UnsupportedMediaTypeException;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import reactor.core.publisher.Mono;
-import reactor.util.retry.Retry;
 
 import java.net.ConnectException;
 import java.time.Duration;
@@ -98,11 +97,29 @@ public class AdvancedConversationService {
                         params.getHttpMethod()))
                 .onErrorResume(throwable -> throwable instanceof NonProxiedException,
                         e -> getNonProxiedClientResponse(params, requestId))
-                .retryWhen(Retry.backoff(4, Duration.ofMillis(500))
-                        .filter(AdvancedProxyUtils::badProxyError)
-                        .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
-                            throw new NonProxiedException("Service failed to process after max retries");
-                        }));
+                .onErrorResume(AdvancedProxyUtils::badProxyError, e -> {
+                    if (e.getCause() instanceof UnsupportedMediaTypeException) {
+                        return Mono.just(ErrorResult.unknownError(params.getUrl(), e));
+                    }
+                    log.warn("Retrying request because of exception - {}. Request id - {}", e.getMessage(), requestId);
+                    return retriesRequestService.existsByRequestId(requestId)
+                            .flatMap(exist -> getRetriesRequest(exist, requestId))
+                            .flatMap(retriesRequest -> {
+                                retriesRequest.setRetries(retriesRequest.getRetries() - 1);
+                                if (retriesRequest.getRetries() == 0) {
+                                    retriesRequestService.deleteByRequestId(requestId).subscribe();
+                                    log.error("Proxy - [{}:{}] request failed, URL - {}, HttpMethod - {}. Error - {}", proxy.getHost(),
+                                            proxy.getPort(), params.getUrl(), params.getHttpMethod(),
+                                            Optional.ofNullable(e.getCause()).map(Throwable::getMessage).orElse(e.getMessage()));
+                                    return getNonProxiedClientResponse(params, requestId);
+                                }
+                                long exponentialTimeout = (long) (retriesRequest.getTimeout() * exponent);
+                                retriesRequest.setTimeout(exponentialTimeout);
+                                retriesRequestService.save(retriesRequest).subscribe();
+                                params.setTimeout(exponentialTimeout);
+                                return connectionMobileProxyErrorResult(e, params, requestId);
+                            });
+                });
     }
 
     private Mono<Result> getProxiedResponse(ProxyRequestParams params, ProxyInstance proxy, String requestId) {
@@ -216,6 +233,21 @@ public class AdvancedConversationService {
                     if (hasElement) {
                         return proxyService.getRandomProxy(params.getTimeout(), params.getUrl()).flatMap(proxy ->
                                 getProxiedResponse(params, proxy, requestId));
+                    } else {
+                        return getNonProxiedClientResponse(params, requestId)
+                                .delaySubscription(Duration.ofMillis(params.getTimeout()));
+                    }
+                });
+    }
+
+    private Mono<Result> connectionMobileProxyErrorResult(Throwable e, ProxyRequestParams params, String requestId) {
+        log.warn("Trying to send request with another random proxy. Exception - " + e.getMessage());
+        return proxyService.getRandomProxy(0L, params.getUrl())
+                .hasElement()
+                .flatMap(hasElement -> {
+                    if (hasElement) {
+                        return proxyService.getRandomMobileProxy(params.getTimeout()).flatMap(proxy ->
+                                getMobileProxyProxiedResponse(params, proxy, requestId));
                     } else {
                         return getNonProxiedClientResponse(params, requestId)
                                 .delaySubscription(Duration.ofMillis(params.getTimeout()));
