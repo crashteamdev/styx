@@ -98,7 +98,7 @@ public class AdvancedConversationService {
                         params.getHttpMethod()))
                 .onErrorResume(throwable -> throwable instanceof NonProxiedException,
                         e -> getNonProxiedClientResponse(params, requestId))
-                .retryWhen(Retry.backoff(4, Duration.ofSeconds(1))
+                .retryWhen(Retry.backoff(4, Duration.ofMillis(500))
                         .filter(AdvancedProxyUtils::badProxyError)
                         .onRetryExhaustedThrow((retryBackoffSpec, retrySignal) -> {
                             throw new NonProxiedException("Service failed to process after max retries");
