@@ -35,7 +35,7 @@ public class MobileProxyService implements ProxyProvider {
                 .flatMapMany(Flux::fromIterable)
                 .map(p -> {
                     ProxyInstance proxyInstance = new ProxyInstance();
-                    proxyInstance.setHost(p.getHost());
+                    proxyInstance.setHost(p.getHostSocks5());
                     proxyInstance.setPort(p.getPort());
                     proxyInstance.setActive(true);
                     proxyInstance.setProxySource(ProxySource.MOBILE_PROXY);

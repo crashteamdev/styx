@@ -111,7 +111,7 @@ public class WebClientService {
                         .addHandlerLast(new WriteTimeoutHandler(handlerTimeout)))
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 20000)
                 .proxy(p ->
-                        p.type(ProxyProvider.Proxy.HTTP)
+                        p.type(ProxyProvider.Proxy.SOCKS5)
                                 .host(proxy.getHost())
                                 .port(Integer.parseInt(proxy.getPort()))
                                 .username(proxy.getUser())

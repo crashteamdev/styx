@@ -29,7 +29,7 @@ public class ProxyLineService implements ProxyProvider {
                 .map((ProxyLineResponse.ProxyLineResult p) -> {
                     ProxyInstance proxyInstance = new ProxyInstance();
                     proxyInstance.setHost(p.getIp());
-                    proxyInstance.setPort(p.getPortHttp());
+                    proxyInstance.setPort(p.getPortSocks5());
                     proxyInstance.setActive(true);
                     proxyInstance.setProxySource(ProxySource.PROXY_LINE);
                     proxyInstance.setUser(p.getUser());
