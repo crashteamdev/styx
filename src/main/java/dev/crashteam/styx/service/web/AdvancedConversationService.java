@@ -89,7 +89,8 @@ public class AdvancedConversationService {
                         .map(ProxySource::getValue).orElse("Unknown"));
         return webClientService.getProxiedWebclientWithHttpMethod(params, proxy)
                 .retrieve()
-                .onStatus(httpStatus -> !httpStatus.is2xxSuccessful() && !httpStatus.equals(HttpStatus.FORBIDDEN), this::getMonoError)
+                .onStatus(httpStatus -> !httpStatus.is2xxSuccessful() && !httpStatus.equals(HttpStatus.FORBIDDEN)
+                        && !httpStatus.equals(HttpStatus.TOO_MANY_REQUESTS), this::getMonoError)
                 .onStatus(httpStatus -> httpStatus.equals(HttpStatus.FORBIDDEN), this::getForbiddenError)
                 .onStatus(httpStatus -> httpStatus.equals(HttpStatus.TOO_MANY_REQUESTS), this::getTooManyRequestError)
                 .toEntity(Object.class)
