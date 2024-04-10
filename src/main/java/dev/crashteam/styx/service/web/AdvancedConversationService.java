@@ -91,15 +91,7 @@ public class AdvancedConversationService {
                 .retrieve()
                 .onStatus(httpStatus -> !httpStatus.is2xxSuccessful() && !httpStatus.equals(HttpStatus.FORBIDDEN), this::getMonoError)
                 .onStatus(httpStatus -> httpStatus.equals(HttpStatus.FORBIDDEN), this::getForbiddenError)
-                .onStatus(httpStatus -> httpStatus.equals(HttpStatus.TOO_MANY_REQUESTS), clientResponse -> {
-                    if (proxy.getBadProxyPoint() >= 10) {
-                        mobileProxyService.changeIp(proxy);
-                    } else {
-                        proxy.setBadProxyPoint(proxy.getBadProxyPoint() + 1);
-                        proxyService.saveExisting(proxy);
-                    }
-                    return getTooManyRequestError(clientResponse);
-                })
+                .onStatus(httpStatus -> httpStatus.equals(HttpStatus.TOO_MANY_REQUESTS), this::getTooManyRequestError)
                 .toEntity(Object.class)
                 .map(response -> Result.success(response.getStatusCodeValue(), params.getUrl(), response.getBody(),
                         params.getHttpMethod()))
@@ -113,6 +105,12 @@ public class AdvancedConversationService {
                     return retriesRequestService.existsByRequestId(requestId)
                             .flatMap(exist -> getRetriesRequest(exist, requestId))
                             .flatMap(retriesRequest -> {
+                                if (proxy.getBadProxyPoint() >= 10) {
+                                    mobileProxyService.changeIp(proxy);
+                                } else {
+                                    proxy.setBadProxyPoint(proxy.getBadProxyPoint() + 1);
+                                    proxyService.saveExisting(proxy);
+                                }
                                 retriesRequest.setRetries(retriesRequest.getRetries() - 1);
                                 if (retriesRequest.getRetries() == 0) {
                                     retriesRequestService.deleteByRequestId(requestId).subscribe();
