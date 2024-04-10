@@ -88,6 +88,11 @@ public class ProxyRepositoryImpl implements ProxyRepository {
                 .filter(it -> ProxySource.MOBILE_PROXY.equals(it.getProxySource()) && it.getBadProxyPoint() < 10);
     }
 
+    public Flux<ProxyInstance> getBadMobileProxies() {
+        return hashOperations.values(RedisKey.PROXY_KEY.getValue())
+                .filter(it -> ProxySource.MOBILE_PROXY.equals(it.getProxySource()) && it.getBadProxyPoint() >= 10);
+    }
+
     public Mono<ProxyInstance> getMobileProxyByKey(String proxyKey) {
         return hashOperations.values(RedisKey.PROXY_KEY.getValue())
                 .filter(it -> ProxySource.MOBILE_PROXY.equals(it.getProxySource()))

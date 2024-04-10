@@ -83,6 +83,10 @@ public class CachedProxyService {
                 .switchIfEmpty(Mono.empty());
     }
 
+    public Flux<ProxyInstance> getBadMobileProxies() {
+        return proxyRepository.getBadMobileProxies();
+    }
+
     public Flux<ProxyInstance> getMobileProxies(Long timeout) {
         return proxyRepository.getMobileProxies();
     }

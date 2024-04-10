@@ -107,9 +107,6 @@ public class AdvancedConversationService {
                             .flatMap(exist -> getRetriesRequest(exist, requestId))
                             .flatMap(retriesRequest -> {
                                 proxy.setBadProxyPoint(proxy.getBadProxyPoint() + 1);
-                                if (proxy.getBadProxyPoint() >= 10) {
-                                    mobileProxyService.changeIp(proxy);
-                                }
                                 proxyService.saveExisting(proxy);
 
                                 retriesRequest.setRetries(retriesRequest.getRetries() - 1);
