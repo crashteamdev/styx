@@ -1,9 +1,6 @@
 package dev.crashteam.styx.service.web;
 
-import dev.crashteam.styx.exception.NonProxiedException;
-import dev.crashteam.styx.exception.OriginalRequestException;
-import dev.crashteam.styx.exception.ProxyForbiddenException;
-import dev.crashteam.styx.exception.ProxyGlobalException;
+import dev.crashteam.styx.exception.*;
 import dev.crashteam.styx.model.proxy.ProxyInstance;
 import dev.crashteam.styx.model.proxy.ProxySource;
 import dev.crashteam.styx.model.request.RetriesRequest;
@@ -12,6 +9,7 @@ import dev.crashteam.styx.model.web.ProxyRequestParams;
 import dev.crashteam.styx.model.web.Result;
 import dev.crashteam.styx.service.forbidden.ForbiddenProxyService;
 import dev.crashteam.styx.service.proxy.CachedProxyService;
+import dev.crashteam.styx.service.proxy.provider.MobileProxyService;
 import dev.crashteam.styx.util.AdvancedProxyUtils;
 import io.netty.handler.proxy.ProxyConnectException;
 import io.netty.handler.timeout.ReadTimeoutException;
@@ -39,6 +37,7 @@ public class AdvancedConversationService {
     private final CachedProxyService proxyService;
     private final ForbiddenProxyService forbiddenProxyService;
     private final RetriesRequestService retriesRequestService;
+    private final MobileProxyService mobileProxyService;
 
     @Value("${app.proxy.retries.attempts}")
     private Integer retries;
@@ -92,6 +91,12 @@ public class AdvancedConversationService {
                 .retrieve()
                 .onStatus(httpStatus -> !httpStatus.is2xxSuccessful() && !httpStatus.equals(HttpStatus.FORBIDDEN), this::getMonoError)
                 .onStatus(httpStatus -> httpStatus.equals(HttpStatus.FORBIDDEN), this::getForbiddenError)
+                .onStatus(httpStatus -> httpStatus.equals(HttpStatus.TOO_MANY_REQUESTS), clientResponse -> {
+                    if (proxy.getBadProxyPoint() >= 10) {
+                        mobileProxyService.changeIp(proxy);
+                    }
+                    return getTooManyRequestError(clientResponse);
+                })
                 .toEntity(Object.class)
                 .map(response -> Result.success(response.getStatusCodeValue(), params.getUrl(), response.getBody(),
                         params.getHttpMethod()))
@@ -273,6 +278,18 @@ public class AdvancedConversationService {
                     return Mono.error(new ProxyGlobalException(e.getMessage(), e));
                 })
                 .flatMap(body -> Mono.error(new ProxyForbiddenException(("Proxy request forbidden error, " +
+                        "response code from proxied client - %s").formatted(response.rawStatusCode()), body,
+                        response.rawStatusCode())));
+
+    }
+
+    private Mono<? extends Throwable> getTooManyRequestError(ClientResponse response) {
+        return response.bodyToMono(String.class)
+                .onErrorResume(Objects::nonNull, e -> {
+                    log.error("Unknown error", e);
+                    return Mono.error(new ProxyGlobalException(e.getMessage(), e));
+                })
+                .flatMap(body -> Mono.error(new TooManyRequestException(("Proxy too many request error, " +
                         "response code from proxied client - %s").formatted(response.rawStatusCode()), body,
                         response.rawStatusCode())));
 

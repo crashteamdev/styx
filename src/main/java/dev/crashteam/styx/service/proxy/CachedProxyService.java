@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -37,9 +38,15 @@ public class CachedProxyService {
     }
 
     public void saveExisting(ProxyInstance proxy) {
-        String badUrls = proxy.getBadUrls().stream().map(ProxyInstance.BadUrl::getUrl).collect(Collectors.joining(","));
+        String badUrls = !CollectionUtils.isEmpty(proxy.getBadUrls()) ?
+                proxy.getBadUrls().stream().map(ProxyInstance.BadUrl::getUrl).collect(Collectors.joining(","))
+                : "";
         log.warn("Saving proxy [{}:{}] with bad urls - {}", proxy.getHost(), proxy.getPort(), badUrls);
         proxyRepository.saveExisting(proxy).subscribe();
+    }
+
+    public Mono<ProxyInstance> getMobileProxyByKey(String proxyKey) {
+        return proxyRepository.getMobileProxyByKey(proxyKey);
     }
 
     public Mono<ProxyInstance> getRandomProxy(Long timeout) {
