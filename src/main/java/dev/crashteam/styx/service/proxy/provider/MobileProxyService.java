@@ -87,6 +87,7 @@ public class MobileProxyService implements ProxyProvider {
                 })
                 .flatMap(it -> proxyService.getMobileProxyByKey(proxy.getProxyKey()))
                 .doOnNext(it -> {
+                    log.info("Ip of proxy {} changed", proxy.getHost());
                     it.setBadProxyPoint(0);
                     proxyService.saveExisting(it);
                 })

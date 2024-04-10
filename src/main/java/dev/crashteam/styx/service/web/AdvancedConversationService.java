@@ -106,12 +106,12 @@ public class AdvancedConversationService {
                     return retriesRequestService.existsByRequestId(requestId)
                             .flatMap(exist -> getRetriesRequest(exist, requestId))
                             .flatMap(retriesRequest -> {
+                                proxy.setBadProxyPoint(proxy.getBadProxyPoint() + 1);
                                 if (proxy.getBadProxyPoint() >= 10) {
                                     mobileProxyService.changeIp(proxy);
-                                } else {
-                                    proxy.setBadProxyPoint(proxy.getBadProxyPoint() + 1);
-                                    proxyService.saveExisting(proxy);
                                 }
+                                proxyService.saveExisting(proxy);
+
                                 retriesRequest.setRetries(retriesRequest.getRetries() - 1);
                                 if (retriesRequest.getRetries() == 0) {
                                     retriesRequestService.deleteByRequestId(requestId).subscribe();
