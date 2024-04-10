@@ -72,6 +72,7 @@ public class MobileProxyService implements ProxyProvider {
 
     public void changeIp(ProxyInstance proxy) {
         log.info("Changing ip of proxy - {}", proxy.getHost());
+        if (proxy.getBadProxyPoint() < 10) return;
         proxyService.getMobileProxyByKey(proxy.getProxyKey())
                 .filter(it -> it.getProxyKey().equals(proxy.getProxyKey()))
                 .flatMap(it -> {
