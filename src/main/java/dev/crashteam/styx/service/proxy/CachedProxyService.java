@@ -2,6 +2,7 @@ package dev.crashteam.styx.service.proxy;
 
 
 import dev.crashteam.styx.model.proxy.ProxyInstance;
+import dev.crashteam.styx.model.proxy.ProxySource;
 import dev.crashteam.styx.repository.proxy.ProxyRepositoryImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,7 +54,7 @@ public class CachedProxyService {
         return proxyRepository.getRandomProxy().delaySubscription(Duration.ofMillis(timeout));
     }
 
-    public Mono<ProxyInstance> getRandomProxy(Long timeout, String url) {
+    public Mono<ProxyInstance> getRandomProxy(ProxySource proxySource, Long timeout, String url) {
         String rootUrl;
         try {
             rootUrl = new URL(url).toURI().resolve("/").toString();
@@ -61,7 +62,7 @@ public class CachedProxyService {
             log.error("Exception while resolving url - {}", url, e);
             throw new RuntimeException(e);
         }
-        return proxyRepository.getRandomProxyNotIncludeForbidden(rootUrl, 20).delaySubscription(Duration.ofMillis(timeout));
+        return proxyRepository.getRandomProxyNotIncludeForbidden(proxySource, rootUrl, 20).delaySubscription(Duration.ofMillis(timeout));
     }
 
     public Mono<ProxyInstance> getRandomMobileProxy(Long timeout) {

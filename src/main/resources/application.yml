@@ -42,6 +42,9 @@ app:
     timeout: 5000
 
 integration:
+  proxys-io:
+    url: https://proxys.io/ru/api/v2
+    api-key: 3cebb29602e9a7eb9e043578771af688
   mobile-proxy:
     change-ip-cron: 0/15 * * ? * *
     api-key: eec7092e9738914593b3a102e15b8852
