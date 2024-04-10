@@ -36,6 +36,7 @@ public class ProxyLineService implements ProxyProvider {
                     proxyInstance.setBadUrls(new CopyOnWriteArrayList<>());
                     proxyInstance.setPassword(p.getPassword());
                     proxyInstance.setProxyKey(null);
+                    proxyInstance.setCountryCode("RU");
                     return proxyInstance;
                 });
 

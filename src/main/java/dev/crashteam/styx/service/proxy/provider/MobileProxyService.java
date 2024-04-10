@@ -42,6 +42,7 @@ public class MobileProxyService implements ProxyProvider {
                     proxyInstance.setBadUrls(new CopyOnWriteArrayList<>());
                     proxyInstance.setPassword(p.getPassword());
                     proxyInstance.setProxyKey(p.getProxyKey());
+                    proxyInstance.setCountryCode("RU");
                     return proxyInstance;
                 });
     }

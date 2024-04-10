@@ -37,6 +37,7 @@ public class ProxyIoService implements ProxyProvider {
                         proxyInstance.setUser(p.getUsername());
                         proxyInstance.setBadUrls(new CopyOnWriteArrayList<>());
                         proxyInstance.setPassword(p.getPassword());
+                        proxyInstance.setCountryCode(p.getCountryCode());
                         proxyInstance.setProxyKey(null);
                         proxyInstances.add(proxyInstance);
                     }

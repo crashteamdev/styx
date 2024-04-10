@@ -14,6 +14,8 @@ public class ProxyIoResponse {
     public static class ProxyIoData {
         private String username;
         private String password;
+        @JsonProperty("country_code")
+        private String countryCode;
         @JsonProperty("list_ip")
         private List<ProxyIo> proxies;
     }

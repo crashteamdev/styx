@@ -17,6 +17,7 @@ public class ProxyInstance {
     private ProxySource proxySource;
     private String user;
     private String password;
+    private String countryCode;
     private List<BadUrl> badUrls;
 
     @Data
