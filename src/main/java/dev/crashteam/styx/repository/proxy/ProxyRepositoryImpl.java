@@ -78,7 +78,6 @@ public class ProxyRepositoryImpl implements ProxyRepository {
         return hashOperations
                 .randomEntry(RedisKey.PROXY_KEY.getValue())
                 .map(Map.Entry::getValue)
-                .filter(it -> "RU".equals(it.getCountryCode()))
                 .filter(it -> proxySource.equals(it.getProxySource()) || ProxySource.MOBILE_PROXY.equals(it.getProxySource()))
                 .filterWhen(proxy -> forbiddenProxyRepository.notExistsByKey(proxy, rootUrl))
                 .switchIfEmpty(getRandomProxyNotIncludeForbidden(proxySource, rootUrl, retry));
