@@ -37,7 +37,6 @@ public class AdvancedConversationService {
     private final CachedProxyService proxyService;
     private final ForbiddenProxyService forbiddenProxyService;
     private final RetriesRequestService retriesRequestService;
-    private final MobileProxyService mobileProxyService;
 
     @Value("${app.proxy.retries.attempts}")
     private Integer retries;
