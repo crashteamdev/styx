@@ -94,6 +94,9 @@ public class AdvancedConversationService {
                 .onStatus(httpStatus -> httpStatus.equals(HttpStatus.TOO_MANY_REQUESTS), clientResponse -> {
                     if (proxy.getBadProxyPoint() >= 10) {
                         mobileProxyService.changeIp(proxy);
+                    } else {
+                        proxy.setBadProxyPoint(proxy.getBadProxyPoint() + 1);
+                        proxyService.saveExisting(proxy);
                     }
                     return getTooManyRequestError(clientResponse);
                 })
