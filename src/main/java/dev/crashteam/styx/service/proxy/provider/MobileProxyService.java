@@ -19,7 +19,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class MobileProxyService implements ProxyProvider {
+public class MobileProxyService {
 
     @Value("${integration.mobile-proxy.url}")
     private String proxyUrl;
@@ -27,7 +27,7 @@ public class MobileProxyService implements ProxyProvider {
     private String apiKey;
     private final CachedProxyService proxyService;
 
-    @Override
+
     public Flux<ProxyInstance> getProxy() {
         return getProxyFromSource()
                 .map(it -> Arrays.stream(it).toList())

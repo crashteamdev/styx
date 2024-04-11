@@ -18,8 +18,8 @@ public class MobileProxyIPChanger {
     private final MobileProxyService mobileProxyService;
     private final CachedProxyService proxyService;
 
-    @Scheduled(cron = "${integration.mobile-proxy.change-ip-cron}")
-    @SchedulerLock(name = "changeMobileProxyIp")
+    //@Scheduled(cron = "${integration.mobile-proxy.change-ip-cron}")
+    //@SchedulerLock(name = "changeMobileProxyIp")
     public void fillRedisCacheOnSchedule() {
         LockAssert.assertLocked();
         proxyService.getBadMobileProxies()
