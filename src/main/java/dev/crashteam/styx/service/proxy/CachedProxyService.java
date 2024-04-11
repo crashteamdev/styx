@@ -62,7 +62,7 @@ public class CachedProxyService {
             log.error("Exception while resolving url - {}", url, e);
             throw new RuntimeException(e);
         }
-        return proxyRepository.getRandomProxyNotIncludeForbidden(proxySource, rootUrl, 20).delaySubscription(Duration.ofMillis(timeout));
+        return proxyRepository.getRandomProxyNotIncludeForbidden(proxySource, rootUrl, 30).delaySubscription(Duration.ofMillis(timeout));
     }
 
     public Mono<ProxyInstance> getRandomMobileProxy(Long timeout) {
