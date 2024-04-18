@@ -62,7 +62,23 @@ public class CachedProxyService {
             log.error("Exception while resolving url - {}", url, e);
             throw new RuntimeException(e);
         }
-        return proxyRepository.getRandomProxyNotIncludeForbidden(proxySource, rootUrl, 30).delaySubscription(Duration.ofMillis(timeout));
+        Random random = new Random();
+        Flux<ProxyInstance> proxies = proxyRepository.getRandomProxyNotIncludeForbidden(proxySource, rootUrl);
+        return proxies
+                .delaySubscription(Duration.ofMillis(timeout))
+                .count()
+                .map(s -> {
+                    if (s != null && s > 1) {
+                        return random.nextLong(s);
+                    }
+                    return 0L;
+                })
+                .flatMap(index -> proxies
+                        .count()
+                        .filter(size -> size > 0)
+                        .flatMap(p -> proxies.elementAt(Math.toIntExact(index))))
+                .switchIfEmpty(Mono.empty());
+
     }
 
     public Mono<ProxyInstance> getRandomMobileProxy(Long timeout) {
