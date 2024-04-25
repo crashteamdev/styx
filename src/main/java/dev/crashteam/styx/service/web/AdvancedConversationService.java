@@ -167,7 +167,7 @@ public class AdvancedConversationService {
                                     retriesRequestService.deleteByRequestId(requestId).subscribe();
                                     if (badUrlOptional.isPresent()) {
                                         ProxyInstance.BadUrl badUrl = badUrlOptional.get();
-                                        if (badUrl.getPoint() >= 3) {
+                                        if (badUrl.getPoint() >= 7) {
                                             forbiddenProxyService.save(rootUrl, proxy);
                                             badUrl.setPoint(0);
                                         } else {
@@ -310,7 +310,7 @@ public class AdvancedConversationService {
             RetriesRequest retriesRequest = new RetriesRequest();
             retriesRequest.setRequestId(requestId);
             retriesRequest.setRetries(retries);
-            retriesRequest.setTimeout(1400L);
+            retriesRequest.setTimeout(2000L);
             return Mono.just(retriesRequest);
         }
     }
