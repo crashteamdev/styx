@@ -31,7 +31,7 @@ public class ProxyIoService implements ProxyProvider {
                     for (ProxyIoResponse.ProxyIo proxy : p.getProxies()) {
                         ProxyInstance proxyInstance = new ProxyInstance();
                         proxyInstance.setHost(proxy.getIp());
-                        proxyInstance.setPort(proxy.getPortSocks5());
+                        proxyInstance.setPort(proxy.getPortHttp());
                         proxyInstance.setActive(true);
                         proxyInstance.setProxySource(ProxySource.PROXYS_IO);
                         proxyInstance.setUser(p.getUsername());
