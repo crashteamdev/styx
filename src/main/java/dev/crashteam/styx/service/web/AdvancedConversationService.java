@@ -165,22 +165,22 @@ public class AdvancedConversationService {
                                 retriesRequest.setRetries(retriesRequest.getRetries() - 1);
                                 if (retriesRequest.getRetries() == 0) {
                                     retriesRequestService.deleteByRequestId(requestId).subscribe();
-                                    if (badUrlOptional.isPresent()) {
-                                        ProxyInstance.BadUrl badUrl = badUrlOptional.get();
-                                        if (badUrl.getPoint() >= 7) {
-                                            forbiddenProxyService.save(rootUrl, proxy);
-                                            badUrl.setPoint(0);
-                                        } else {
-                                            badUrl.setPoint(badUrl.getPoint() + 1);
-                                            log.warn("Setting bad point for proxy - [{}:{}], badUrl - {}", proxy.getHost(),
-                                                    proxy.getPort(), badUrl);
-                                        }
-                                    } else {
-                                        ProxyInstance.BadUrl badUrl = new ProxyInstance.BadUrl();
-                                        badUrl.setUrl(rootUrl);
-                                        badUrl.setPoint(1);
-                                        proxy.getBadUrls().add(badUrl);
-                                    }
+//                                    if (badUrlOptional.isPresent()) {
+//                                        ProxyInstance.BadUrl badUrl = badUrlOptional.get();
+//                                        if (badUrl.getPoint() >= 7) {
+//                                            forbiddenProxyService.save(rootUrl, proxy);
+//                                            badUrl.setPoint(0);
+//                                        } else {
+//                                            badUrl.setPoint(badUrl.getPoint() + 1);
+//                                            log.warn("Setting bad point for proxy - [{}:{}], badUrl - {}", proxy.getHost(),
+//                                                    proxy.getPort(), badUrl);
+//                                        }
+//                                    } else {
+//                                        ProxyInstance.BadUrl badUrl = new ProxyInstance.BadUrl();
+//                                        badUrl.setUrl(rootUrl);
+//                                        badUrl.setPoint(1);
+//                                        proxy.getBadUrls().add(badUrl);
+//                                    }
                                     proxyService.saveExisting(proxy);
                                     log.error("Proxy - [{}:{}] request failed, URL - {}, HttpMethod - {}. Error - {}", proxy.getHost(),
                                             proxy.getPort(), params.getUrl(), params.getHttpMethod(),
