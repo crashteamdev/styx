@@ -44,6 +44,9 @@ public class AdvancedConversationService {
     @Value("${app.proxy.retries.exponent}")
     private Double exponent;
 
+    @Value("${app.proxy.retries.timeout}")
+    private Long retriesTimeout;
+
     public Mono<Result> getProxiedResult(ProxyRequestParams params) {
         String requestId = UUID.randomUUID().toString();
         if (params.getProxySource() == null) {
@@ -310,7 +313,7 @@ public class AdvancedConversationService {
             RetriesRequest retriesRequest = new RetriesRequest();
             retriesRequest.setRequestId(requestId);
             retriesRequest.setRetries(retries);
-            retriesRequest.setTimeout(2000L);
+            retriesRequest.setTimeout(retriesTimeout);
             return Mono.just(retriesRequest);
         }
     }
