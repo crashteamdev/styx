@@ -12,6 +12,8 @@ public class ProxyIoResponse {
 
     @Data
     public static class ProxyIoData {
+        @JsonProperty("order_id")
+        private Integer orderId;
         private String username;
         private String password;
         @JsonProperty("country_code")

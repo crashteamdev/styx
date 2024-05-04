@@ -37,6 +37,7 @@ public class AdvancedConversationService {
     private final CachedProxyService proxyService;
     private final ForbiddenProxyService forbiddenProxyService;
     private final RetriesRequestService retriesRequestService;
+    private final MobileProxyService mobileProxyService;
 
     @Value("${app.proxy.retries.attempts}")
     private Integer retries;
@@ -112,6 +113,9 @@ public class AdvancedConversationService {
                             .flatMap(exist -> getRetriesRequest(exist, requestId))
                             .flatMap(retriesRequest -> {
                                 proxy.setBadProxyPoint(proxy.getBadProxyPoint() + 1);
+                                if (proxy.getBadProxyPoint() >= 10) {
+                                    mobileProxyService.changeIp(proxy);
+                                }
                                 proxyService.saveExisting(proxy);
 
                                 retriesRequest.setRetries(retriesRequest.getRetries() - 1);

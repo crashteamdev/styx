@@ -26,6 +26,7 @@ public class ProxyIoService implements ProxyProvider {
         return this.getProxyFromSource()
                 .map(ProxyIoResponse::getData)
                 .flatMap(Flux::fromIterable)
+                .filter(this::notInOrder)
                 .map(p -> {
                     List<ProxyInstance> proxyInstances = new ArrayList<>();
                     for (ProxyIoResponse.ProxyIo proxy : p.getProxies()) {
@@ -58,5 +59,13 @@ public class ProxyIoService implements ProxyProvider {
 
     }
 
-
+    private boolean notInOrder(ProxyIoResponse.ProxyIoData data) {
+        Integer orderId = data.getOrderId();
+        return !orderId.equals(724334)
+                && !orderId.equals(724333)
+                && !orderId.equals(704380)
+                && !orderId.equals(703957)
+                && !orderId.equals(703955)
+                && !orderId.equals(703794);
+    }
 }
