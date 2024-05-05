@@ -212,7 +212,7 @@ public class AdvancedConversationService {
         retriesRequestService.deleteByRequestId(requestId).subscribe();
         if (badUrlOptional.isPresent()) {
             ProxyInstance.BadUrl badUrl = badUrlOptional.get();
-            if (badUrl.getPoint() >= 5) {
+            if (badUrl.getPoint() >= 3) {
                 forbiddenProxyService.save(rootUrl, proxy);
                 badUrl.setPoint(0);
             } else {
