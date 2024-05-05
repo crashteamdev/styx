@@ -50,6 +50,7 @@ public class AdvancedConversationService {
 
     public Mono<Result> getProxiedResult(ProxyRequestParams params) {
         String requestId = UUID.randomUUID().toString();
+        long timeout = params.getTimeout() == null ? 0L : params.getTimeout();
         if (params.getContext()
                 .stream()
                 .filter(it-> it.getKey().equals("market"))
@@ -62,7 +63,7 @@ public class AdvancedConversationService {
                 ProxySource.MOBILE_PROXY.equals(params.getProxySource())
                         ? proxyService.getRandomMobileProxy(params.getTimeout())
                         : proxyService.getRandomProxy(params, params.getUrl())
-                        .delaySubscription(Duration.ofMillis(params.getTimeout()));
+                        .delaySubscription(Duration.ofMillis(timeout));
         return proxyInstance
                 .hasElement()
                 .flatMap(hasElement -> {

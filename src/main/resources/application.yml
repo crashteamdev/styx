@@ -37,7 +37,7 @@ app:
   timeout-handler: 20
   proxy:
     retries:
-      timeout: 100
+      timeout: 1000
       attempts: 4
       exponent: 1.5
     timeout: 5000
