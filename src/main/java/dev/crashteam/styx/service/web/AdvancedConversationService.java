@@ -177,28 +177,10 @@ public class AdvancedConversationService {
                                 Optional<ProxyInstance.BadUrl> badUrlOptional = getOptionalBadUrl(proxy, rootUrl);
                                 retriesRequest.setRetries(retriesRequest.getRetries() - 1);
                                 if (retriesRequest.getRetries() == 0) {
-                                    retriesRequestService.deleteByRequestId(requestId).subscribe();
-                                    if (badUrlOptional.isPresent()) {
-                                        ProxyInstance.BadUrl badUrl = badUrlOptional.get();
-                                        if (badUrl.getPoint() >= 3) {
-                                            forbiddenProxyService.save(rootUrl, proxy);
-                                            badUrl.setPoint(0);
-                                        } else {
-                                            badUrl.setPoint(badUrl.getPoint() + 1);
-                                            log.warn("Setting bad point for proxy - [{}:{}], badUrl - {}", proxy.getHost(),
-                                                    proxy.getPort(), badUrl);
-                                        }
-                                    } else {
-                                        ProxyInstance.BadUrl badUrl = new ProxyInstance.BadUrl();
-                                        badUrl.setUrl(rootUrl);
-                                        badUrl.setPoint(1);
-                                        proxy.getBadUrls().add(badUrl);
-                                    }
-                                    proxyService.saveExisting(proxy);
                                     log.error("Proxy - [{}:{}] request failed, URL - {}, HttpMethod - {}. Error - {}", proxy.getHost(),
                                             proxy.getPort(), params.getUrl(), params.getHttpMethod(),
                                             Optional.ofNullable(e.getCause()).map(Throwable::getMessage).orElse(e.getMessage()));
-                                    return getNonProxiedClientResponse(params, requestId);
+                                    return getNonProxiedResponseOnRetryFailed(requestId, badUrlOptional, rootUrl, proxy, params);
                                 }
                                 long exponentialTimeout = (long) (retriesRequest.getTimeout() * exponent);
                                 retriesRequest.setTimeout(exponentialTimeout);
@@ -218,6 +200,34 @@ public class AdvancedConversationService {
                     }
                 });
 
+    }
+
+    private Mono<Result> getNonProxiedResponseOnRetryFailed(String requestId, Optional<ProxyInstance.BadUrl> badUrlOptional,
+                                                             String rootUrl, ProxyInstance proxy, ProxyRequestParams params) {
+        saveForbiddenProxy(requestId, badUrlOptional, rootUrl, proxy);
+        return getNonProxiedClientResponse(params, requestId);
+    }
+
+    private void saveForbiddenProxy(String requestId, Optional<ProxyInstance.BadUrl> badUrlOptional,
+                                    String rootUrl, ProxyInstance proxy) {
+        retriesRequestService.deleteByRequestId(requestId).subscribe();
+        if (badUrlOptional.isPresent()) {
+            ProxyInstance.BadUrl badUrl = badUrlOptional.get();
+            if (badUrl.getPoint() >= 2) {
+                forbiddenProxyService.save(rootUrl, proxy);
+                badUrl.setPoint(0);
+            } else {
+                badUrl.setPoint(badUrl.getPoint() + 1);
+                log.warn("Setting bad point for proxy - [{}:{}], badUrl - {}", proxy.getHost(),
+                        proxy.getPort(), badUrl);
+            }
+        } else {
+            ProxyInstance.BadUrl badUrl = new ProxyInstance.BadUrl();
+            badUrl.setUrl(rootUrl);
+            badUrl.setPoint(1);
+            proxy.getBadUrls().add(badUrl);
+        }
+        proxyService.saveExisting(proxy);
     }
 
     private Mono<Result> getNonProxiedClientResponse(ProxyRequestParams params, String requestId) {
