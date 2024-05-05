@@ -72,8 +72,11 @@ public class CachedProxyService {
                     }
                     return 0L;
                 })
-                .flatMap(index -> proxies.elementAt(Math.toIntExact(index))
-                .switchIfEmpty(Mono.empty()));
+                .flatMap(index -> proxies
+                        .count()
+                        .filter(size -> size > 0)
+                        .flatMap(p -> proxies.elementAt(Math.toIntExact(index))))
+                .switchIfEmpty(Mono.empty());
 
     }
 
