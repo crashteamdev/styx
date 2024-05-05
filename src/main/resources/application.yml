@@ -53,6 +53,9 @@ integration:
   proxy-line:
     api-key:
     url: https://panel.proxyline.net/api/
+  proxy-house:
+    api-key:
+    url: https://proxy.house/api/open/v1/
 
 loki:
   host: localhost

@@ -4,7 +4,8 @@ public enum ProxySource {
     PROXY_LINE("PROXY_LINE"),
     MOBILE_PROXY("MOBILE_PROXY"),
     EXTERNAL_SOURCE("External source"),
-    PROXYS_IO("PROXYS_IO");
+    PROXYS_IO("PROXYS_IO"),
+    PROXY_HOUSE("PROXY_HOUSE");
 
     ProxySource(String value) {
         this.value = value;

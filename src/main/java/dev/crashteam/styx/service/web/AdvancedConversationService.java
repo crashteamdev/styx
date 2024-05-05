@@ -50,13 +50,18 @@ public class AdvancedConversationService {
 
     public Mono<Result> getProxiedResult(ProxyRequestParams params) {
         String requestId = UUID.randomUUID().toString();
-        if (params.getProxySource() == null) {
+        if (params.getContext()
+                .stream()
+                .filter(it-> it.getKey().equals("market"))
+                .anyMatch(it -> it.getValue().equals("KE"))) {
+            params.setProxySource(ProxySource.PROXY_HOUSE);
+        } else {
             params.setProxySource(ProxySource.PROXY_LINE);
         }
         Mono<ProxyInstance> proxyInstance =
                 ProxySource.MOBILE_PROXY.equals(params.getProxySource())
                         ? proxyService.getRandomMobileProxy(params.getTimeout())
-                        : proxyService.getRandomProxy(params.getProxySource(), 0L, params.getUrl());
+                        : proxyService.getRandomProxy(params.getProxySource(), params.getUrl());
         return proxyInstance
                 .hasElement()
                 .flatMap(hasElement -> {
@@ -146,6 +151,7 @@ public class AdvancedConversationService {
                 .onStatus(httpStatus -> !httpStatus.is2xxSuccessful() && !httpStatus.equals(HttpStatus.FORBIDDEN), this::getMonoError)
                 .onStatus(httpStatus -> httpStatus.equals(HttpStatus.FORBIDDEN), this::getForbiddenError)
                 .toEntity(Object.class)
+                .delaySubscription(Duration.ofMillis(params.getTimeout()))
                 .map(response -> Result.success(response.getStatusCodeValue(), params.getUrl(), response.getBody(),
                         params.getHttpMethod()))
                 .onErrorResume(throwable -> throwable instanceof OriginalRequestException, e -> {
@@ -174,7 +180,7 @@ public class AdvancedConversationService {
                                     retriesRequestService.deleteByRequestId(requestId).subscribe();
                                     if (badUrlOptional.isPresent()) {
                                         ProxyInstance.BadUrl badUrl = badUrlOptional.get();
-                                        if (badUrl.getPoint() >= 5) {
+                                        if (badUrl.getPoint() >= 3) {
                                             forbiddenProxyService.save(rootUrl, proxy);
                                             badUrl.setPoint(0);
                                         } else {
@@ -240,12 +246,13 @@ public class AdvancedConversationService {
 
     private Mono<Result> connectionErrorResult(ProxySource proxySource, Throwable e, ProxyRequestParams params, String requestId) {
         log.warn("Trying to send request with another random proxy. Exception - " + e.getMessage());
-        return proxyService.getRandomProxy(proxySource, 0L, params.getUrl())
+        return proxyService.getRandomProxy(proxySource, params.getUrl())
                 .hasElement()
                 .flatMap(hasElement -> {
                     if (hasElement) {
-                        return proxyService.getRandomProxy(proxySource, params.getTimeout(), params.getUrl()).flatMap(proxy ->
-                                getProxiedResponse(params, proxy, requestId));
+                        return proxyService.getRandomProxy(proxySource, params.getUrl()).flatMap(proxy ->
+                                getProxiedResponse(params, proxy, requestId))
+                                .delaySubscription(Duration.ofMillis(params.getTimeout()));
                     } else {
                         return getNonProxiedClientResponse(params, requestId)
                                 .delaySubscription(Duration.ofMillis(params.getTimeout()));
