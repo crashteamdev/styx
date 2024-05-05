@@ -61,7 +61,8 @@ public class AdvancedConversationService {
         Mono<ProxyInstance> proxyInstance =
                 ProxySource.MOBILE_PROXY.equals(params.getProxySource())
                         ? proxyService.getRandomMobileProxy(params.getTimeout())
-                        : proxyService.getRandomProxy(params, params.getUrl());
+                        : proxyService.getRandomProxy(params, params.getUrl())
+                        .delaySubscription(Duration.ofMillis(params.getTimeout()));
         return proxyInstance
                 .hasElement()
                 .flatMap(hasElement -> {
