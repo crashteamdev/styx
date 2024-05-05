@@ -50,18 +50,10 @@ public class AdvancedConversationService {
 
     public Mono<Result> getProxiedResult(ProxyRequestParams params) {
         String requestId = UUID.randomUUID().toString();
-        if (params.getContext()
-                .stream()
-                .filter(it-> it.getKey().equals("market"))
-                .anyMatch(it -> it.getValue().equals("KE"))) {
-            params.setProxySource(ProxySource.PROXY_HOUSE);
-        } else {
-            params.setProxySource(ProxySource.PROXY_LINE);
-        }
         Mono<ProxyInstance> proxyInstance =
                 ProxySource.MOBILE_PROXY.equals(params.getProxySource())
                         ? proxyService.getRandomMobileProxy(params.getTimeout())
-                        : proxyService.getRandomProxy(params.getProxySource(), params.getUrl());
+                        : proxyService.getRandomProxy(params.getUrl());
         return proxyInstance
                 .hasElement()
                 .flatMap(hasElement -> {
@@ -164,7 +156,7 @@ public class AdvancedConversationService {
                                 (throwable.getCause() != null && throwable.getCause() instanceof ProxyConnectException)), e -> {
                     log.error("Proxy connection exception for url - {}, trying another proxy", rootUrl);
                     forbiddenProxyService.save(rootUrl, proxy);
-                    return connectionErrorResult(proxy.getProxySource(), e, params, requestId);
+                    return connectionErrorResult(e, params, requestId);
                 })
                 .onErrorResume(AdvancedProxyUtils::badProxyError, e -> {
                     if (e.getCause() instanceof UnsupportedMediaTypeException) {
@@ -186,7 +178,7 @@ public class AdvancedConversationService {
                                 retriesRequest.setTimeout(exponentialTimeout);
                                 retriesRequestService.save(retriesRequest).subscribe();
                                 params.setTimeout(exponentialTimeout);
-                                return connectionErrorResult(proxy.getProxySource(), e, params, requestId);
+                                return connectionErrorResult(e, params, requestId);
                             });
                 })
                 .onErrorResume(throwable -> throwable instanceof ProxyGlobalException,
@@ -254,13 +246,13 @@ public class AdvancedConversationService {
                         });
     }
 
-    private Mono<Result> connectionErrorResult(ProxySource proxySource, Throwable e, ProxyRequestParams params, String requestId) {
+    private Mono<Result> connectionErrorResult(Throwable e, ProxyRequestParams params, String requestId) {
         log.warn("Trying to send request with another random proxy. Exception - " + e.getMessage());
-        return proxyService.getRandomProxy(proxySource, params.getUrl())
+        return proxyService.getRandomProxy(params.getUrl())
                 .hasElement()
                 .flatMap(hasElement -> {
                     if (hasElement) {
-                        return proxyService.getRandomProxy(proxySource, params.getUrl()).flatMap(proxy ->
+                        return proxyService.getRandomProxy(params.getUrl()).flatMap(proxy ->
                                 getProxiedResponse(params, proxy, requestId))
                                 .delaySubscription(Duration.ofMillis(params.getTimeout()));
                     } else {

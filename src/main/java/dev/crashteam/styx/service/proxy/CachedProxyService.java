@@ -54,7 +54,7 @@ public class CachedProxyService {
         return proxyRepository.getRandomProxy().delaySubscription(Duration.ofMillis(timeout));
     }
 
-    public Mono<ProxyInstance> getRandomProxy(ProxySource proxySource, String url) {
+    public Mono<ProxyInstance> getRandomProxy(String url) {
         String rootUrl;
         try {
             rootUrl = new URL(url).toURI().resolve("/").toString();
@@ -63,7 +63,7 @@ public class CachedProxyService {
             throw new RuntimeException(e);
         }
         Random random = new Random();
-        Flux<ProxyInstance> proxies = proxyRepository.getRandomProxyNotIncludeForbidden(proxySource, rootUrl);
+        Flux<ProxyInstance> proxies = proxyRepository.getRandomProxyNotIncludeForbidden(rootUrl);
         return proxies
                 .count()
                 .map(s -> {
