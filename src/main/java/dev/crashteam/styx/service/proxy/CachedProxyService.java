@@ -3,6 +3,7 @@ package dev.crashteam.styx.service.proxy;
 
 import dev.crashteam.styx.model.proxy.ProxyInstance;
 import dev.crashteam.styx.model.proxy.ProxySource;
+import dev.crashteam.styx.model.web.ProxyRequestParams;
 import dev.crashteam.styx.repository.proxy.ProxyRepositoryImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -54,7 +55,7 @@ public class CachedProxyService {
         return proxyRepository.getRandomProxy().delaySubscription(Duration.ofMillis(timeout));
     }
 
-    public Mono<ProxyInstance> getRandomProxy(String url) {
+    public Mono<ProxyInstance> getRandomProxy(ProxyRequestParams params, String url) {
         String rootUrl;
         try {
             rootUrl = new URL(url).toURI().resolve("/").toString();
@@ -63,7 +64,7 @@ public class CachedProxyService {
             throw new RuntimeException(e);
         }
         Random random = new Random();
-        Flux<ProxyInstance> proxies = proxyRepository.getRandomProxyNotIncludeForbidden(rootUrl);
+        Flux<ProxyInstance> proxies = proxyRepository.getRandomProxyNotIncludeForbidden(params.getProxySource(), rootUrl);
         return proxies
                 .count()
                 .map(s -> {
