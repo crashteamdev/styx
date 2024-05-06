@@ -128,7 +128,7 @@ public class AdvancedConversationService {
                                 retriesRequest.setRetries(retriesRequest.getRetries() - 1);
                                 if (retriesRequest.getRetries() == 0) {
                                     retriesRequestService.deleteByRequestId(requestId).subscribe();
-                                    log.error("Proxy - [{}:{}] request failed, URL - {}, HttpMethod - {}. Error - {}", proxy.getHost(),
+                                    log.error("Proxy - [{}:{}] request failed, URL - {}, HttpMethod - {}. Cause - {}", proxy.getHost(),
                                             proxy.getPort(), params.getUrl(), params.getHttpMethod(),
                                             Optional.ofNullable(e.getCause()).map(Throwable::getMessage).orElse(e.getMessage()));
                                     return getNonProxiedClientResponse(params, requestId);
@@ -179,7 +179,7 @@ public class AdvancedConversationService {
                                 Optional<ProxyInstance.BadUrl> badUrlOptional = getOptionalBadUrl(proxy, rootUrl);
                                 retriesRequest.setRetries(retriesRequest.getRetries() - 1);
                                 if (retriesRequest.getRetries() == 0) {
-                                    log.error("Proxy - [{}:{}] request failed, URL - {}, HttpMethod - {}. Error - {}", proxy.getHost(),
+                                    log.error("Proxy - [{}:{}] request failed, URL - {}, HttpMethod - {}. Cause - {}", proxy.getHost(),
                                             proxy.getPort(), params.getUrl(), params.getHttpMethod(),
                                             Optional.ofNullable(e.getCause()).map(Throwable::getMessage).orElse(e.getMessage()));
                                     return getNonProxiedResponseOnRetryFailed(requestId, badUrlOptional, rootUrl, proxy, params);
@@ -248,7 +248,7 @@ public class AdvancedConversationService {
                         e -> Mono.just(ErrorResult.unknownError(params.getUrl(), e)))
                 .onErrorResume(Objects::nonNull,
                         e -> {
-                            log.error("Request without proxy failed with an error: ", e);
+                            log.error("Request without proxy failed cause: ", e);
                             if (e instanceof OriginalRequestException requestException) {
                                 return Mono.just(ErrorResult.originalRequestError(requestException.getStatusCode(),
                                         params.getUrl(), requestException, requestException.getBody()));
@@ -294,7 +294,7 @@ public class AdvancedConversationService {
                     log.error("Unknown error", e);
                     return Mono.error(new ProxyGlobalException(e.getMessage(), e));
                 })
-                .flatMap(body -> Mono.error(new OriginalRequestException("Proxy request error", body,
+                .flatMap(body -> Mono.error(new OriginalRequestException("Proxy request failed", body,
                         response.rawStatusCode())));
 
     }
@@ -305,7 +305,7 @@ public class AdvancedConversationService {
                     log.error("Unknown error", e);
                     return Mono.error(new ProxyGlobalException(e.getMessage(), e));
                 })
-                .flatMap(body -> Mono.error(new ProxyForbiddenException(("Proxy request forbidden error, " +
+                .flatMap(body -> Mono.error(new ProxyForbiddenException(("Proxy request forbidden, " +
                         "response code from proxied client - %s").formatted(response.rawStatusCode()), body,
                         response.rawStatusCode())));
 
@@ -317,7 +317,7 @@ public class AdvancedConversationService {
                     log.error("Unknown error", e);
                     return Mono.error(new ProxyGlobalException(e.getMessage(), e));
                 })
-                .flatMap(body -> Mono.error(new TooManyRequestException(("Proxy too many request error, " +
+                .flatMap(body -> Mono.error(new TooManyRequestException(("Proxy too many request, " +
                         "response code from proxied client - %s").formatted(response.rawStatusCode()), body,
                         response.rawStatusCode())));
 
