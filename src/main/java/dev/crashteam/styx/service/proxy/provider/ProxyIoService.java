@@ -1,6 +1,7 @@
 package dev.crashteam.styx.service.proxy.provider;
 
 import dev.crashteam.styx.model.proxy.*;
+import dev.crashteam.styx.util.RandomUserAgent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -39,6 +40,7 @@ public class ProxyIoService implements ProxyProvider{
                         proxyInstance.setPassword(p.getPassword());
                         proxyInstance.setCountryCode(p.getCountryCode());
                         proxyInstance.setProxyKey(null);
+                        proxyInstance.setUserAgent(RandomUserAgent.getRandomUserAgent());
                         proxyInstances.add(proxyInstance);
                     }
                     return proxyInstances;

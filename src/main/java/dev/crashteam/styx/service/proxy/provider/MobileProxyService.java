@@ -5,6 +5,7 @@ import dev.crashteam.styx.model.proxy.MobileProxyResponse;
 import dev.crashteam.styx.model.proxy.ProxyInstance;
 import dev.crashteam.styx.model.proxy.ProxySource;
 import dev.crashteam.styx.service.proxy.CachedProxyService;
+import dev.crashteam.styx.util.RandomUserAgent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -43,6 +44,7 @@ public class MobileProxyService {
                     proxyInstance.setPassword(p.getPassword());
                     proxyInstance.setProxyKey(p.getProxyKey());
                     proxyInstance.setCountryCode("RU");
+                    proxyInstance.setUserAgent(RandomUserAgent.getRandomUserAgent());
                     return proxyInstance;
                 });
     }

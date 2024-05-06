@@ -4,6 +4,7 @@ import dev.crashteam.styx.model.proxy.ProxyInstance;
 import dev.crashteam.styx.service.forbidden.ForbiddenProxyService;
 import dev.crashteam.styx.service.proxy.CachedProxyService;
 import dev.crashteam.styx.service.proxy.provider.ProxyProvider;
+import dev.crashteam.styx.util.RandomUserAgent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.core.LockAssert;
@@ -42,6 +43,17 @@ public class ProxyHandler {
     public void cleanForbiddenUrlsOnSchedule() {
         LockAssert.assertLocked();
         cleanForbiddenUrls();
+    }
+
+    @Scheduled(cron = "${application.scheduler.redis.update-user-agents}")
+    @SchedulerLock(name = "updateUserAgents")
+    public void updateUserAgents() {
+        LockAssert.assertLocked();
+        proxyService.findAll()
+                .doOnNext(it -> {
+                    it.setUserAgent(RandomUserAgent.getRandomUserAgent());
+                    proxyService.saveExisting(it);
+                }).subscribe();
     }
 
     private void cleanForbiddenUrls() {

@@ -3,6 +3,7 @@ package dev.crashteam.styx.service.proxy.provider;
 import dev.crashteam.styx.model.proxy.ProxyInstance;
 import dev.crashteam.styx.model.proxy.ProxyLineResponse;
 import dev.crashteam.styx.model.proxy.ProxySource;
+import dev.crashteam.styx.util.RandomUserAgent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -37,6 +38,7 @@ public class ProxyLineService implements ProxyProvider {
                     proxyInstance.setPassword(p.getPassword());
                     proxyInstance.setProxyKey(null);
                     proxyInstance.setCountryCode("RU");
+                    proxyInstance.setUserAgent(RandomUserAgent.getRandomUserAgent());
                     return proxyInstance;
                 });
 

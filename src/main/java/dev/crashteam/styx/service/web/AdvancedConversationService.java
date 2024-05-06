@@ -194,11 +194,13 @@ public class AdvancedConversationService {
                 .onErrorResume(throwable -> throwable instanceof ProxyGlobalException,
                         e -> Mono.just(ErrorResult.unknownError(params.getUrl(), e)))
                 .doOnSuccess(result -> {
-                    Optional<ProxyInstance.BadUrl> badUrl = getOptionalBadUrl(proxy, rootUrl);
-                    if (!(result instanceof ErrorResult) && (badUrl.isPresent() && badUrl.get().getPoint() > 0)) {
-                        log.warn("Reset to zero bad points for proxy - [{}:{}]", proxy.getHost(), proxy.getPort());
-                        badUrl.get().setPoint(0);
-                        proxyService.saveExisting(proxy);
+                    if (result.getCode() == 0) { // check if request is proxied
+                        Optional<ProxyInstance.BadUrl> badUrl = getOptionalBadUrl(proxy, rootUrl);
+                        if (!(result instanceof ErrorResult) && (badUrl.isPresent() && badUrl.get().getPoint() > 0)) {
+                            log.warn("Reset to zero bad points for proxy - [{}:{}]", proxy.getHost(), proxy.getPort());
+                            badUrl.get().setPoint(0);
+                            proxyService.saveExisting(proxy);
+                        }
                     }
                 });
 

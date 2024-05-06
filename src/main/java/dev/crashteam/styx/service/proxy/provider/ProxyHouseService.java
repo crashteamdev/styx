@@ -3,6 +3,7 @@ package dev.crashteam.styx.service.proxy.provider;
 import dev.crashteam.styx.model.proxy.ProxyHouseResponse;
 import dev.crashteam.styx.model.proxy.ProxyInstance;
 import dev.crashteam.styx.model.proxy.ProxySource;
+import dev.crashteam.styx.util.RandomUserAgent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,7 @@ public class ProxyHouseService implements ProxyProvider {
                 .map(it -> it.getData().getProxies())
                 .map(Map::values)
                 .flatMap(Flux::fromIterable)
+                .filter(it -> it.getActive() != 0)
                 .map(p -> {
                     ProxyInstance proxyInstance = new ProxyInstance();
                     proxyInstance.setHost(p.getIp());
@@ -38,6 +40,7 @@ public class ProxyHouseService implements ProxyProvider {
                     proxyInstance.setPassword(p.getPassword());
                     proxyInstance.setCountryCode(null);
                     proxyInstance.setProxyKey(null);
+                    proxyInstance.setUserAgent(RandomUserAgent.getRandomUserAgent());
                     return proxyInstance;
                 });
     }

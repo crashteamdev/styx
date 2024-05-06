@@ -47,7 +47,7 @@ public class WebClientService {
         List<ProxyRequestParams.ContextValue> context = params.getContext();
         WebClient.RequestBodyUriSpec client = WebClient.builder()
                 .exchangeStrategies(getMaxBufferSize())
-                .defaultHeaders(getHeadersConsumer(getHeaders(context)))
+                .defaultHeaders(getHeadersConsumer(getHeaders(proxy, context)))
                 .baseUrl(params.getUrl())
                 .clientConnector(getProxiedConnector(proxy))
                 .build()
@@ -140,6 +140,13 @@ public class WebClientService {
             }
         }
         applyHeaderFunctions(headers);
+        return headers;
+    }
+
+    @SuppressWarnings("unchecked")
+    public Map<String, String> getHeaders(ProxyInstance proxy, List<ProxyRequestParams.ContextValue> context) {
+        Map<String, String> headers = getHeaders(context);
+        headers.put("User-Agent", proxy.getUserAgent());
         return headers;
     }
 

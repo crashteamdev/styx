@@ -27,6 +27,7 @@ public class ProxyHouseResponse {
     public static class ProxyHouseSource {
         public int id;
         public String login;
+        private int active;
         public String password;
         public String expired_at;
         public String created_at;

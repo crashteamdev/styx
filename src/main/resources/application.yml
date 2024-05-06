@@ -68,3 +68,4 @@ application:
     redis:
       cache-cron: 0 0/5 * * * ?
       forbidden-url-cron: 0 0/1 * * * ?
+      update-user-agents: 0 0 3 1/1 * ? *
