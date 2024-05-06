@@ -81,7 +81,7 @@ public class AdvancedConversationService {
                                 });
                     } else {
                         return getNonProxiedClientResponse(params, requestId)
-                                .delaySubscription(Duration.ofMillis(params.getTimeout()))
+                                .delaySubscription(Duration.ofMillis(params.getTimeout() == null ? 0L : params.getTimeout()))
                                 .doOnSuccess(result -> {
                                     log.debug("----RESPONSE----\n{}", result.getBody());
                                 });
