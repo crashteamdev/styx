@@ -146,7 +146,9 @@ public class WebClientService {
     @SuppressWarnings("unchecked")
     public Map<String, String> getHeaders(ProxyInstance proxy, List<ProxyRequestParams.ContextValue> context) {
         Map<String, String> headers = getHeaders(context);
-        headers.put("User-Agent", proxy.getUserAgent());
+        if (StringUtils.hasText(proxy.getUserAgent())) {
+            headers.put("User-Agent", proxy.getUserAgent());
+        }
         return headers;
     }
 

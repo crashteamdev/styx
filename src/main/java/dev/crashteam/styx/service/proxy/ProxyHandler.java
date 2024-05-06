@@ -2,7 +2,6 @@ package dev.crashteam.styx.service.proxy;
 
 import dev.crashteam.styx.model.proxy.ProxyInstance;
 import dev.crashteam.styx.service.forbidden.ForbiddenProxyService;
-import dev.crashteam.styx.service.proxy.CachedProxyService;
 import dev.crashteam.styx.service.proxy.provider.ProxyProvider;
 import dev.crashteam.styx.util.RandomUserAgent;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +17,8 @@ import reactor.core.publisher.Flux;
 import javax.annotation.PostConstruct;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.TimeZone;
 
 @Slf4j
 @Service
