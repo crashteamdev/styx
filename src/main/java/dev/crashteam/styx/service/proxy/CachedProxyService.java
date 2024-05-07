@@ -85,7 +85,7 @@ public class CachedProxyService {
         Random random = new Random();
         Flux<ProxyInstance> mobileProxies = proxyRepository.getMobileProxies();
         return mobileProxies
-                .delaySubscription(Duration.ofMillis(timeout))
+                .delaySubscription(Duration.ofMillis(timeout == null ? 0L : timeout))
                 .count()
                 .map(s -> {
                     if (s != null && s > 1) {
