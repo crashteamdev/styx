@@ -28,7 +28,6 @@ public class MobileProxyHandler {
                 .doOnNext(mobileProxyService::changeIp).subscribe();
     }
 
-    @PostConstruct
     @Scheduled(cron = "${application.scheduler.mobile-proxy.reload-proxy}")
     @SchedulerLock(name = "reloadProxy")
     public void reloadProxy() {
