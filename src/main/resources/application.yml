@@ -47,7 +47,6 @@ integration:
     url: https://proxys.io/ru/api/v2
     api-key:
   mobile-proxy:
-    change-ip-cron: 0/15 * * ? * *
     api-key: eec7092e9738914593b3a102e15b8852
     url: https://mobileproxy.space/api.html
   proxy-line:
@@ -64,6 +63,9 @@ loki:
 application:
   forbidden-expire: 7
   scheduler:
+    mobile-proxy:
+      change-ip-cron: 0/15 * * ? * *
+      reload-proxy: 0 0/30 * * * ?
     lockAtMost: 15m
     redis:
       cache-cron: 0 0/5 * * * ?

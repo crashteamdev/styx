@@ -104,7 +104,7 @@ public class CachedProxyService {
         return proxyRepository.getBadMobileProxies();
     }
 
-    public Flux<ProxyInstance> getMobileProxies(Long timeout) {
+    public Flux<ProxyInstance> getMobileProxies() {
         return proxyRepository.getMobileProxies();
     }
 

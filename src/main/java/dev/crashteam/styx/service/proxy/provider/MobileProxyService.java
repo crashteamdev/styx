@@ -1,9 +1,6 @@
 package dev.crashteam.styx.service.proxy.provider;
 
-import dev.crashteam.styx.model.proxy.MobileProxyChangeIpResponse;
-import dev.crashteam.styx.model.proxy.MobileProxyResponse;
-import dev.crashteam.styx.model.proxy.ProxyInstance;
-import dev.crashteam.styx.model.proxy.ProxySource;
+import dev.crashteam.styx.model.proxy.*;
 import dev.crashteam.styx.service.proxy.CachedProxyService;
 import dev.crashteam.styx.util.RandomUserAgent;
 import lombok.RequiredArgsConstructor;
@@ -63,7 +60,7 @@ public class MobileProxyService implements ProxyProvider {
     }
 
     public void changeIp() {
-        proxyService.getMobileProxies(0L)
+        proxyService.getMobileProxies()
                 .flatMap(it -> {
                     WebClient webClient = WebClient.builder()
                             .baseUrl("https://changeip.mobileproxy.space/?proxy_key=%s&format=json".formatted(it.getProxyKey()))
@@ -95,6 +92,26 @@ public class MobileProxyService implements ProxyProvider {
                     proxyService.saveExisting(it);
                 })
                 .doOnError(e -> log.error("Error while changing mobile proxies ip"))
+                .subscribe();
+    }
+
+    public void reloadProxy(ProxyInstance proxy) {
+        log.info("Reloading mobile proxy - {}", proxy.getHost());
+        proxyService.getMobileProxyByKey(proxy.getProxyKey())
+                .filter(it -> it.getProxyKey().equals(proxy.getProxyKey()))
+                .flatMap(it -> {
+                    WebClient webClient = WebClient.builder()
+                            .baseUrl("https://mobileproxy.space/api.html?command=reboot_proxy&proxy_id=%s".formatted(it.getProxyKey()))
+                            .defaultHeaders(httpHeaders -> httpHeaders.add("Authorization", "Bearer " + apiKey))
+                            .build();
+                    return webClient
+                            .get()
+                            .retrieve()
+                            .bodyToMono(MobileProxyReloadResponse.class);
+
+                })
+                .doOnNext(it -> log.info("Reloaded proxy with status - {}", it.getStatus()))
+                .doOnError(e -> log.error("Error while reloading mobile proxies ip", e))
                 .subscribe();
     }
 
