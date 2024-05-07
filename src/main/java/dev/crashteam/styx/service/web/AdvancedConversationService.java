@@ -121,9 +121,6 @@ public class AdvancedConversationService {
                             .flatMap(retriesRequest -> {
                                 if (e instanceof ProxyForbiddenException || e instanceof TooManyRequestException) {
                                     proxy.setBadProxyPoint(proxy.getBadProxyPoint() + 1);
-                                    if (proxy.getBadProxyPoint() >= 10) {
-                                        mobileProxyService.changeIp(proxy);
-                                    }
                                     proxyService.saveExisting(proxy);
                                 }
 
