@@ -20,7 +20,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class MobileProxyService {
+public class MobileProxyService implements ProxyProvider {
 
     @Value("${integration.mobile-proxy.url}")
     private String proxyUrl;

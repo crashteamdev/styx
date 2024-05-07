@@ -55,7 +55,7 @@ public class AdvancedConversationService {
                 .stream()
                 .filter(it-> it.getKey().equals("market"))
                 .anyMatch(it -> it.getValue().equals("KE"))) {
-            params.setProxySource(ProxySource.PROXY_HOUSE);
+            params.setProxySource(ProxySource.MOBILE_PROXY);
         } else {
             params.setProxySource(ProxySource.PROXY_LINE);
         }
