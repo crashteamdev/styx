@@ -119,11 +119,13 @@ public class AdvancedConversationService {
                     return retriesRequestService.existsByRequestId(requestId)
                             .flatMap(exist -> getRetriesRequest(exist, requestId))
                             .flatMap(retriesRequest -> {
-                                proxy.setBadProxyPoint(proxy.getBadProxyPoint() + 1);
-                                if (proxy.getBadProxyPoint() >= 10) {
-                                    mobileProxyService.changeIp(proxy);
+                                if (e instanceof ProxyForbiddenException || e instanceof TooManyRequestException) {
+                                    proxy.setBadProxyPoint(proxy.getBadProxyPoint() + 1);
+                                    if (proxy.getBadProxyPoint() >= 10) {
+                                        mobileProxyService.changeIp(proxy);
+                                    }
+                                    proxyService.saveExisting(proxy);
                                 }
-                                proxyService.saveExisting(proxy);
 
                                 retriesRequest.setRetries(retriesRequest.getRetries() - 1);
                                 if (retriesRequest.getRetries() == 0) {
