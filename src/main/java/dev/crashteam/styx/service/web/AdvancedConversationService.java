@@ -26,6 +26,7 @@ import java.net.ConnectException;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Random;
 import java.util.UUID;
 
 @Service
@@ -57,7 +58,11 @@ public class AdvancedConversationService {
                 .anyMatch(it -> it.getValue().equals("KE"))) {
             params.setProxySource(ProxySource.MOBILE_PROXY);
         } else {
-            params.setProxySource(ProxySource.PROXY_LINE);
+            Random random = new Random();
+            int i = random.nextInt(3);
+            ProxySource[] proxySources = new ProxySource[]{ProxySource.PROXYS_IO, ProxySource.PROXY_HOUSE, ProxySource.PROXY_LINE};
+            ProxySource proxySource = proxySources[i];
+            params.setProxySource(proxySource);
         }
         Mono<ProxyInstance> proxyInstance =
                 ProxySource.MOBILE_PROXY.equals(params.getProxySource())
