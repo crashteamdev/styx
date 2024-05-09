@@ -11,6 +11,7 @@ import dev.crashteam.styx.service.forbidden.ForbiddenProxyService;
 import dev.crashteam.styx.service.proxy.CachedProxyService;
 import dev.crashteam.styx.service.proxy.provider.MobileProxyService;
 import dev.crashteam.styx.util.AdvancedProxyUtils;
+import io.netty.handler.proxy.HttpProxyHandler;
 import io.netty.handler.proxy.ProxyConnectException;
 import io.netty.handler.timeout.ReadTimeoutException;
 import lombok.RequiredArgsConstructor;
@@ -54,7 +55,7 @@ public class AdvancedConversationService {
         long timeout = params.getTimeout() == null ? 0L : params.getTimeout();
         if (params.getContext()
                 .stream()
-                .filter(it-> it.getKey().equals("market"))
+                .filter(it -> it.getKey().equals("market"))
                 .anyMatch(it -> it.getValue().equals("KE"))) {
             params.setProxySource(ProxySource.MOBILE_PROXY);
         } else {
@@ -124,7 +125,9 @@ public class AdvancedConversationService {
                     return retriesRequestService.existsByRequestId(requestId)
                             .flatMap(exist -> getRetriesRequest(exist, requestId))
                             .flatMap(retriesRequest -> {
-                                if (e instanceof ProxyForbiddenException || e instanceof TooManyRequestException) {
+                                if (e instanceof ProxyForbiddenException || e instanceof TooManyRequestException
+                                        || e instanceof HttpProxyHandler.HttpProxyConnectException
+                                        || (e.getCause() != null && e.getCause() instanceof HttpProxyHandler.HttpProxyConnectException)) {
                                     proxy.setBadProxyPoint(proxy.getBadProxyPoint() + 1);
                                     proxyService.saveExisting(proxy);
                                 }
@@ -211,7 +214,7 @@ public class AdvancedConversationService {
     }
 
     private Mono<Result> getNonProxiedResponseOnRetryFailed(String requestId, Optional<ProxyInstance.BadUrl> badUrlOptional,
-                                                             String rootUrl, ProxyInstance proxy, ProxyRequestParams params) {
+                                                            String rootUrl, ProxyInstance proxy, ProxyRequestParams params) {
         saveForbiddenProxy(requestId, badUrlOptional, rootUrl, proxy);
         return getNonProxiedClientResponse(params, requestId);
     }
