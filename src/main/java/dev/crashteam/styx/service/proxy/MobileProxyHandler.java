@@ -1,6 +1,7 @@
 package dev.crashteam.styx.service.proxy;
 
 import dev.crashteam.styx.service.proxy.provider.MobileProxyService;
+import dev.crashteam.styx.util.RandomUserAgent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.core.LockAssert;
@@ -25,6 +26,10 @@ public class MobileProxyHandler {
     public void changeMobileProxyIp() {
         LockAssert.assertLocked();
         proxyService.getBadMobileProxies()
+                .doOnNext(it -> {
+                    it.setUserAgent(RandomUserAgent.getRandomUserAgent());
+                    proxyService.saveExisting(it);
+                })
                 .doOnNext(mobileProxyService::changeIp).subscribe();
     }
 
