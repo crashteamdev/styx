@@ -268,7 +268,7 @@ public class AdvancedConversationService {
     private Mono<Result> connectionErrorResult(Throwable e, ProxyRequestParams params, String requestId) {
         log.warn("Trying to send request with another random proxy. Exception - " + e.getMessage());
         return proxyService.getRandomProxy(params, params.getUrl())
-                .delaySubscription(Duration.ofMillis(params.getTimeout()))
+                .delaySubscription(Duration.ofMillis(params.getTimeout() == null ? 0L : params.getTimeout()))
                 .hasElement()
                 .flatMap(hasElement -> {
                     if (hasElement) {
