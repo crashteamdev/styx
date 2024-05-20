@@ -60,8 +60,8 @@ public class AdvancedConversationService {
             params.setProxySource(ProxySource.MOBILE_PROXY);
         } else {
             Random random = new Random();
-            int i = random.nextInt(3);
-            ProxySource[] proxySources = new ProxySource[]{ProxySource.PROXYS_IO, ProxySource.PROXY_HOUSE, ProxySource.PROXY_LINE};
+            int i = random.nextInt(2);
+            ProxySource[] proxySources = new ProxySource[]{ProxySource.PROXY_HOUSE, ProxySource.PROXY_LINE};
             ProxySource proxySource = proxySources[i];
             params.setProxySource(proxySource);
         }
