@@ -125,9 +125,8 @@ public class AdvancedConversationService {
                     return retriesRequestService.existsByRequestId(requestId)
                             .flatMap(exist -> getRetriesRequest(exist, requestId))
                             .flatMap(retriesRequest -> {
-                                if (e instanceof ProxyForbiddenException || e instanceof TooManyRequestException
-                                        || e instanceof HttpProxyHandler.HttpProxyConnectException
-                                        || (e.getCause() != null && e.getCause() instanceof HttpProxyHandler.HttpProxyConnectException)) {
+                                if (!(e instanceof ReadTimeoutException)
+                                        || !(e.getCause() != null && e.getCause() instanceof ReadTimeoutException)) {
                                     proxy.setBadProxyPoint(proxy.getBadProxyPoint() + 1);
                                     proxyService.saveExisting(proxy);
                                 }
