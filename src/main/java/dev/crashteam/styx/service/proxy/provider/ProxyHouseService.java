@@ -47,7 +47,7 @@ public class ProxyHouseService implements ProxyProvider {
 
     public Flux<ProxyHouseResponse> getProxyFromSource() {
         WebClient webClient = WebClient.builder()
-                .baseUrl(proxyUrl + "proxy/list")
+                .baseUrl(proxyUrl + "proxy/list?limit=1000")
                 .defaultHeaders(httpHeaders -> httpHeaders.add("Auth-Token", apiKey))
                 .build();
         return webClient.get()
