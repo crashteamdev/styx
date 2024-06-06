@@ -59,11 +59,7 @@ public class AdvancedConversationService {
                 .anyMatch(it -> it.getValue().equals("KE"))) {
             params.setProxySource(ProxySource.MOBILE_PROXY);
         } else {
-            Random random = new Random();
-            int i = random.nextInt(2);
-            ProxySource[] proxySources = new ProxySource[]{ProxySource.PROXY_HOUSE, ProxySource.PROXY_LINE};
-            ProxySource proxySource = proxySources[i];
-            params.setProxySource(proxySource);
+            params.setProxySource(ProxySource.PROXY_HOUSE);
         }
         Mono<ProxyInstance> proxyInstance =
                 ProxySource.MOBILE_PROXY.equals(params.getProxySource())
