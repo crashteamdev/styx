@@ -22,7 +22,9 @@ import reactor.core.publisher.Mono;
 import java.net.ConnectException;
 import java.net.URL;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 public class AdvancedProxyUtils {
@@ -86,6 +88,16 @@ public class AdvancedProxyUtils {
                         .filter(size -> size > 0)
                         .flatMap(p -> activeProxies.elementAt(Math.toIntExact(index))))
                 .switchIfEmpty(Mono.empty());
+    }
+
+    public static Map<String, String> getHeadersByPattern(Map<String, String> headers) {
+        Map<String, String> cleanMap = new HashMap<>();
+        headers.forEach((k, v) -> {
+            if (k.startsWith("X-")) {
+                cleanMap.put(k, v);
+            }
+        });
+        return cleanMap;
     }
 
     @SneakyThrows

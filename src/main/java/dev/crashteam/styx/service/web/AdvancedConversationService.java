@@ -25,10 +25,7 @@ import reactor.core.publisher.Mono;
 
 import java.net.ConnectException;
 import java.time.Duration;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @Slf4j
@@ -50,9 +47,10 @@ public class AdvancedConversationService {
     @Value("${app.proxy.retries.timeout}")
     private Long retriesTimeout;
 
-    public Mono<Result> getProxiedResult(ProxyRequestParams params) {
+    public Mono<Result> getProxiedResult(ProxyRequestParams params, Map<String, String> headers) {
         String requestId = UUID.randomUUID().toString();
         long timeout = params.getTimeout() == null ? 0L : params.getTimeout();
+        Map<String, String> headersByPattern = AdvancedProxyUtils.getHeadersByPattern(headers);
         if (params.getContext()
                 .stream()
                 .filter(it -> it.getKey().equals("market"))
@@ -73,9 +71,9 @@ public class AdvancedConversationService {
                         return proxyInstance
                                 .flatMap(proxy -> {
                                     if (ProxySource.MOBILE_PROXY.equals(proxy.getProxySource())) {
-                                        return getMobileProxyProxiedResponse(params, proxy, requestId);
+                                        return getMobileProxyProxiedResponse(params, proxy, requestId, headersByPattern);
                                     } else {
-                                        return getProxiedResponse(params, proxy, requestId);
+                                        return getProxiedResponse(params, proxy, requestId, headersByPattern);
                                     }
                                 })
                                 .doOnSuccess(result -> {
@@ -91,17 +89,19 @@ public class AdvancedConversationService {
                 })
                 .onErrorResume(Objects::nonNull, e -> {
                     String cause = Optional.ofNullable(e.getCause()).map(Throwable::getMessage).orElse(e.getMessage());
-                    log.error("Unknown error for request id - {}. Cause - {}", requestId, cause, e);
+                    log.error("Unknown error for request id - {}. External headers - {}. Cause - {}", requestId, headersByPattern, cause, e);
                     return Mono.just(ErrorResult.unknownError(params.getUrl(), e));
                 }).doFinally(result -> retriesRequestService.deleteIfExistByRequestId(requestId).subscribe());
 
     }
 
-    private Mono<Result> getMobileProxyProxiedResponse(ProxyRequestParams params, ProxyInstance proxy, String requestId) {
-        log.info("Sending request via proxy - [{}:{}]. URL - {}, HttpMethod - {}. RequestId - {}, Proxy source - {}",
+    private Mono<Result> getMobileProxyProxiedResponse(ProxyRequestParams params, ProxyInstance proxy, String requestId,
+                                                       Map<String, String> headers) {
+
+        log.info("Sending request via proxy - [{}:{}]. URL - {}, HttpMethod - {}. RequestId - {}, Proxy source - {}, External requestId - {}, External headers -{}",
                 proxy.getHost(), proxy.getPort(),
                 params.getUrl(), params.getHttpMethod(), requestId, Optional.ofNullable(proxy.getProxySource())
-                        .map(ProxySource::getValue).orElse("Unknown"));
+                        .map(ProxySource::getValue).orElse("Unknown"), headers);
         return webClientService.getProxiedWebclientWithHttpMethod(params, proxy)
                 .retrieve()
                 .onStatus(httpStatus -> !httpStatus.is2xxSuccessful() && !httpStatus.equals(HttpStatus.FORBIDDEN)
@@ -139,16 +139,16 @@ public class AdvancedConversationService {
                                 retriesRequest.setTimeout(exponentialTimeout);
                                 retriesRequestService.save(retriesRequest).subscribe();
                                 params.setTimeout(exponentialTimeout);
-                                return connectionMobileProxyErrorResult(e, params, requestId);
+                                return connectionMobileProxyErrorResult(e, params, requestId, headers);
                             });
                 });
     }
 
-    private Mono<Result> getProxiedResponse(ProxyRequestParams params, ProxyInstance proxy, String requestId) {
-        log.info("Sending request via proxy - [{}:{}]. URL - {}, HttpMethod - {}. Proxy source - {}",
+    private Mono<Result> getProxiedResponse(ProxyRequestParams params, ProxyInstance proxy, String requestId, Map<String, String> headers) {
+        log.info("Sending request via proxy - [{}:{}]. URL - {}, HttpMethod - {}. Proxy source - {}. External headers - {}",
                 proxy.getHost(), proxy.getPort(),
                 params.getUrl(), params.getHttpMethod(), Optional.ofNullable(proxy.getProxySource())
-                        .map(ProxySource::getValue).orElse("Unknown"));
+                        .map(ProxySource::getValue).orElse("Unknown"), headers);
         String rootUrl = AdvancedProxyUtils.getRootUrl(params.getUrl());
         return webClientService.getProxiedWebclientWithHttpMethod(params, proxy)
                 .retrieve()
@@ -168,7 +168,7 @@ public class AdvancedConversationService {
                                 (throwable.getCause() != null && throwable.getCause() instanceof ProxyConnectException)), e -> {
                     log.error("Proxy connection exception for url - {}, trying another proxy", rootUrl);
                     forbiddenProxyService.save(rootUrl, proxy);
-                    return connectionErrorResult(e, params, requestId);
+                    return connectionErrorResult(e, params, requestId, headers);
                 })
                 .onErrorResume(AdvancedProxyUtils::badProxyError, e -> {
                     if (e.getCause() instanceof UnsupportedMediaTypeException) {
@@ -190,7 +190,7 @@ public class AdvancedConversationService {
                                 retriesRequest.setTimeout(exponentialTimeout);
                                 retriesRequestService.save(retriesRequest).subscribe();
                                 params.setTimeout(exponentialTimeout);
-                                return connectionErrorResult(e, params, requestId);
+                                return connectionErrorResult(e, params, requestId, headers);
                             });
                 })
                 .onErrorResume(throwable -> throwable instanceof ProxyGlobalException,
@@ -260,7 +260,7 @@ public class AdvancedConversationService {
                         });
     }
 
-    private Mono<Result> connectionErrorResult(Throwable e, ProxyRequestParams params, String requestId) {
+    private Mono<Result> connectionErrorResult(Throwable e, ProxyRequestParams params, String requestId, Map<String, String> headers) {
         log.warn("Trying to send request with another random proxy. Exception - " + e.getMessage());
         return proxyService.getRandomProxy(params, params.getUrl())
                 .delaySubscription(Duration.ofMillis(params.getTimeout() == null ? 0L : params.getTimeout()))
@@ -268,21 +268,21 @@ public class AdvancedConversationService {
                 .flatMap(hasElement -> {
                     if (hasElement) {
                         return proxyService.getRandomProxy(params, params.getUrl()).flatMap(proxy ->
-                                getProxiedResponse(params, proxy, requestId));
+                                getProxiedResponse(params, proxy, requestId, headers));
                     } else {
                         return getNonProxiedClientResponse(params, requestId);
                     }
                 });
     }
 
-    private Mono<Result> connectionMobileProxyErrorResult(Throwable e, ProxyRequestParams params, String requestId) {
+    private Mono<Result> connectionMobileProxyErrorResult(Throwable e, ProxyRequestParams params, String requestId, Map<String, String> headers) {
         log.warn("Trying to send request with another random proxy. Exception - " + e.getMessage());
         return proxyService.getRandomMobileProxy(0L)
                 .hasElement()
                 .flatMap(hasElement -> {
                     if (hasElement) {
                         return proxyService.getRandomMobileProxy(params.getTimeout()).flatMap(proxy ->
-                                getMobileProxyProxiedResponse(params, proxy, requestId));
+                                getMobileProxyProxiedResponse(params, proxy, requestId, headers));
                     } else {
                         return getNonProxiedClientResponse(params, requestId)
                                 .delaySubscription(Duration.ofMillis(params.getTimeout()));
