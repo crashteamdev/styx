@@ -98,7 +98,7 @@ public class AdvancedConversationService {
     private Mono<Result> getMobileProxyProxiedResponse(ProxyRequestParams params, ProxyInstance proxy, String requestId,
                                                        Map<String, String> headers) {
 
-        log.info("Sending request via proxy - [{}:{}]. URL - {}, HttpMethod - {}. RequestId - {}, Proxy source - {}, External requestId - {}, External headers -{}",
+        log.info("Sending request via proxy - [{}:{}]. URL - {}, HttpMethod - {}. RequestId - {}, Proxy source - {}, External headers -{}",
                 proxy.getHost(), proxy.getPort(),
                 params.getUrl(), params.getHttpMethod(), requestId, Optional.ofNullable(proxy.getProxySource())
                         .map(ProxySource::getValue).orElse("Unknown"), headers);
