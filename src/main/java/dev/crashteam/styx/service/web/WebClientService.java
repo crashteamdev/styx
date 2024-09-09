@@ -12,6 +12,7 @@ import io.netty.channel.ChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -19,6 +20,7 @@ import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
+import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -28,6 +30,7 @@ import reactor.netty.transport.ProxyProvider;
 import java.util.*;
 import java.util.function.Consumer;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class WebClientService {
@@ -57,6 +60,14 @@ public class WebClientService {
         } else {
             return client;
         }
+    }
+
+    private static ExchangeFilterFunction logRequest() {
+        return ExchangeFilterFunction.ofRequestProcessor(clientRequest -> {
+            log.info("Request: {} {}", clientRequest.method(), clientRequest.url());
+            clientRequest.headers().forEach((name, values) -> values.forEach(value -> log.info("{}={}", name, value)));
+            return Mono.just(clientRequest);
+        });
     }
 
     public WebClient.RequestHeadersSpec<?> getWebclientWithHttpMethod(ProxyRequestParams params) {
@@ -146,7 +157,9 @@ public class WebClientService {
     @SuppressWarnings("unchecked")
     public Map<String, String> getHeaders(ProxyInstance proxy, List<ProxyRequestParams.ContextValue> context) {
         Map<String, String> headers = getHeaders(context);
-        if (StringUtils.hasText(proxy.getUserAgent())) {
+        if (context.stream().anyMatch(it -> it.getValue().equals("UZUM"))) {
+            headers.put("User-Agent", "Some-Sneaky-Agent");
+        } else if (StringUtils.hasText(proxy.getUserAgent())) {
             headers.put("User-Agent", proxy.getUserAgent());
         }
         return headers;

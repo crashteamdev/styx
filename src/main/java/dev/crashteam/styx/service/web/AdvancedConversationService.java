@@ -9,9 +9,7 @@ import dev.crashteam.styx.model.web.ProxyRequestParams;
 import dev.crashteam.styx.model.web.Result;
 import dev.crashteam.styx.service.forbidden.ForbiddenProxyService;
 import dev.crashteam.styx.service.proxy.CachedProxyService;
-import dev.crashteam.styx.service.proxy.provider.MobileProxyService;
 import dev.crashteam.styx.util.AdvancedProxyUtils;
-import io.netty.handler.proxy.HttpProxyHandler;
 import io.netty.handler.proxy.ProxyConnectException;
 import io.netty.handler.timeout.ReadTimeoutException;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +23,10 @@ import reactor.core.publisher.Mono;
 
 import java.net.ConnectException;
 import java.time.Duration;
-import java.util.*;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -36,7 +37,6 @@ public class AdvancedConversationService {
     private final CachedProxyService proxyService;
     private final ForbiddenProxyService forbiddenProxyService;
     private final RetriesRequestService retriesRequestService;
-    private final MobileProxyService mobileProxyService;
 
     @Value("${app.proxy.retries.attempts}")
     private Integer retries;
@@ -54,7 +54,7 @@ public class AdvancedConversationService {
         if (params.getContext()
                 .stream()
                 .filter(it -> it.getKey().equals("market"))
-                .anyMatch(it -> it.getValue().equals("KE"))) {
+                .anyMatch(it -> it.getValue().equals("KE") )) {
             params.setProxySource(ProxySource.MOBILE_PROXY);
         } else {
             params.setProxySource(ProxySource.PROXY_HOUSE);
@@ -77,13 +77,17 @@ public class AdvancedConversationService {
                                     }
                                 })
                                 .doOnSuccess(result -> {
-                                    log.debug("----RESPONSE----\n{}", result.getBody());
+                                    if (result != null) {
+                                        log.debug("----RESPONSE----\n{}", result.getBody());
+                                    }
                                 });
                     } else {
                         return getNonProxiedClientResponse(params, requestId)
                                 .delaySubscription(Duration.ofMillis(params.getTimeout() == null ? 0L : params.getTimeout()))
                                 .doOnSuccess(result -> {
-                                    log.debug("----RESPONSE----\n{}", result.getBody());
+                                    if (result != null) {
+                                        log.debug("----RESPONSE----\n{}", result.getBody());
+                                    }
                                 });
                     }
                 })
@@ -113,6 +117,11 @@ public class AdvancedConversationService {
                         params.getHttpMethod()))
                 .onErrorResume(throwable -> throwable instanceof NonProxiedException,
                         e -> getNonProxiedClientResponse(params, requestId))
+                .onErrorResume(throwable -> throwable instanceof OriginalRequestException, e -> {
+                    final OriginalRequestException requestException = (OriginalRequestException) e;
+                    return Mono.just(ErrorResult.originalRequestError(requestException.getStatusCode(), params.getUrl(),
+                            e, requestException.getBody()));
+                })
                 .onErrorResume(AdvancedProxyUtils::badProxyError, e -> {
                     if (e.getCause() instanceof UnsupportedMediaTypeException) {
                         return Mono.just(ErrorResult.unknownError(params.getUrl(), e));
@@ -317,7 +326,7 @@ public class AdvancedConversationService {
         return response.bodyToMono(String.class)
                 .onErrorResume(Objects::nonNull, e -> {
                     log.error("Unknown error", e);
-                    return Mono.error(new ProxyGlobalException(e.getMessage(), e));
+                    return Mono.error(new TooManyRequestException());
                 })
                 .flatMap(body -> Mono.error(new TooManyRequestException(("Proxy too many request, " +
                         "response code from proxied client - %s").formatted(response.rawStatusCode()), body,

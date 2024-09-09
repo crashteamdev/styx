@@ -14,7 +14,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 @Slf4j
 @Service
-public class ProxyLineService implements ProxyProvider {
+public class ProxyLineService  {
 
     @Value("${integration.proxy-line.url}")
     private String proxyUrl;
@@ -22,7 +22,6 @@ public class ProxyLineService implements ProxyProvider {
     @Value("${integration.proxy-line.api-key}")
     private String apiKey;
 
-    @Override
     public Flux<ProxyInstance> getProxy() {
         return this.getProxyFromSource()
                 .map(ProxyLineResponse::getResults)

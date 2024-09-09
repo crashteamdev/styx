@@ -15,7 +15,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 @Slf4j
 @Service
-public class ProxyIoService implements ProxyProvider{
+public class ProxyIoService {
 
     @Value("${integration.proxys-io.url}")
     private String proxyUrl;
