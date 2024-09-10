@@ -193,6 +193,9 @@ public class AdvancedConversationService {
                                     log.error("Proxy - [{}:{}] request failed, URL - {}, HttpMethod - {}. Cause - {}", proxy.getHost(),
                                             proxy.getPort(), params.getUrl(), params.getHttpMethod(),
                                             Optional.ofNullable(e.getCause()).map(Throwable::getMessage).orElse(e.getMessage()));
+                                    if (e instanceof TooManyRequestException) {
+                                        return getNonProxiedResponseOnRetryFailed(requestId, params);
+                                    }
                                     return getNonProxiedResponseOnRetryFailed(requestId, badUrlOptional, rootUrl, proxy, params);
                                 }
                                 long exponentialTimeout = (long) (retriesRequest.getTimeout() * exponent);
@@ -220,6 +223,10 @@ public class AdvancedConversationService {
     private Mono<Result> getNonProxiedResponseOnRetryFailed(String requestId, Optional<ProxyInstance.BadUrl> badUrlOptional,
                                                             String rootUrl, ProxyInstance proxy, ProxyRequestParams params) {
         saveForbiddenProxy(requestId, badUrlOptional, rootUrl, proxy);
+        return getNonProxiedClientResponse(params, requestId);
+    }
+
+    private Mono<Result> getNonProxiedResponseOnRetryFailed(String requestId, ProxyRequestParams params) {
         return getNonProxiedClientResponse(params, requestId);
     }
 
