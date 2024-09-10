@@ -193,7 +193,8 @@ public class AdvancedConversationService {
                                     log.error("Proxy - [{}:{}] request failed, URL - {}, HttpMethod - {}. Cause - {}", proxy.getHost(),
                                             proxy.getPort(), params.getUrl(), params.getHttpMethod(),
                                             Optional.ofNullable(e.getCause()).map(Throwable::getMessage).orElse(e.getMessage()));
-                                    if (e instanceof TooManyRequestException) {
+                                    if (e instanceof TooManyRequestException
+                                            || (e.getCause() != null && e.getCause() instanceof TooManyRequestException)) {
                                         return getNonProxiedResponseOnRetryFailed(requestId, params);
                                     }
                                     return getNonProxiedResponseOnRetryFailed(requestId, badUrlOptional, rootUrl, proxy, params);
