@@ -42,6 +42,11 @@ public class MobileProxyService implements ProxyProvider {
                     proxyInstance.setProxyKey(p.getProxyKey());
                     proxyInstance.setCountryCode("RU");
                     proxyInstance.setUserAgent(RandomUserAgent.getRandomUserAgent());
+                    if (p.getHost().equals("mproxy.site")) {
+                        proxyInstance.setSystem("KE");
+                    } else {
+                        proxyInstance.setSystem("UZUM");
+                    }
                     return proxyInstance;
                 });
     }

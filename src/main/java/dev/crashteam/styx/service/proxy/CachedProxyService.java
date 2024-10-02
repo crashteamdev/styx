@@ -51,6 +51,10 @@ public class CachedProxyService {
         return proxyRepository.getMobileProxyByKey(proxyKey);
     }
 
+    public Mono<ProxyInstance> getMobileProxyBySystem(String system, Long timeout) {
+        return proxyRepository.getMobileProxyBySystem(system).delaySubscription(Duration.ofMillis(timeout == null ? 0L : timeout));
+    }
+
     public Mono<ProxyInstance> getRandomProxy(Long timeout) {
         return proxyRepository.getRandomProxy().delaySubscription(Duration.ofMillis(timeout));
     }

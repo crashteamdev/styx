@@ -100,6 +100,13 @@ public class ProxyRepositoryImpl implements ProxyRepository {
                 .next();
     }
 
+    public Mono<ProxyInstance> getMobileProxyBySystem(String system) {
+        return hashOperations.values(RedisKey.PROXY_KEY.getValue())
+                .filter(it -> ProxySource.MOBILE_PROXY.equals(it.getProxySource()))
+                .filter(it -> system.equals(it.getSystem()))
+                .next();
+    }
+
     @Override
     public Mono<ProxyInstance> findById(String s) {
         return null;

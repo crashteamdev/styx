@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.UnsupportedMediaTypeException;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import reactor.core.publisher.Mono;
@@ -51,19 +52,33 @@ public class AdvancedConversationService {
         String requestId = UUID.randomUUID().toString();
         long timeout = params.getTimeout() == null ? 0L : params.getTimeout();
         Map<String, String> headersByPattern = AdvancedProxyUtils.getHeadersByPattern(headers);
-        if (params.getContext()
+        boolean isMarket = params.getContext()
                 .stream()
                 .filter(it -> it.getKey().equals("market"))
-                .anyMatch(it -> it.getValue().equals("KE") )) {
+                .anyMatch(it -> it.getValue().equals("KE") || it.getValue().equals("UZUM"));
+        if (isMarket) {
             params.setProxySource(ProxySource.MOBILE_PROXY);
         } else {
             params.setProxySource(ProxySource.PROXY_HOUSE);
         }
-        Mono<ProxyInstance> proxyInstance =
-                ProxySource.MOBILE_PROXY.equals(params.getProxySource())
-                        ? proxyService.getRandomMobileProxy(params.getTimeout())
-                        : proxyService.getRandomProxy(params, params.getUrl())
-                        .delaySubscription(Duration.ofMillis(timeout));
+        Mono<ProxyInstance> proxyInstance;
+        if (isMarket) {
+            String market = params.getContext()
+                    .stream()
+                    .filter(it -> it.getKey().equals("market"))
+                    .filter(it -> it.getValue().equals("KE") || it.getValue().equals("UZUM"))
+                    .map(ProxyRequestParams.ContextValue::getValue)
+                    .findFirst()
+                    .map(String::valueOf)
+                    .orElseThrow();
+            proxyInstance = proxyService.getMobileProxyBySystem(market, timeout);
+        } else {
+            proxyInstance =
+                    ProxySource.MOBILE_PROXY.equals(params.getProxySource())
+                            ? proxyService.getRandomMobileProxy(params.getTimeout())
+                            : proxyService.getRandomProxy(params, params.getUrl())
+                            .delaySubscription(Duration.ofMillis(timeout));
+        }
         return proxyInstance
                 .hasElement()
                 .flatMap(hasElement -> {
@@ -148,7 +163,7 @@ public class AdvancedConversationService {
                                 retriesRequest.setTimeout(exponentialTimeout);
                                 retriesRequestService.save(retriesRequest).subscribe();
                                 params.setTimeout(exponentialTimeout);
-                                return connectionMobileProxyErrorResult(e, params, requestId, headers);
+                                return connectionMobileProxyErrorResult(e, params, requestId, headers, proxy.getSystem());
                             });
                 });
     }
@@ -292,13 +307,19 @@ public class AdvancedConversationService {
                 });
     }
 
-    private Mono<Result> connectionMobileProxyErrorResult(Throwable e, ProxyRequestParams params, String requestId, Map<String, String> headers) {
+    private Mono<Result> connectionMobileProxyErrorResult(Throwable e, ProxyRequestParams params, String requestId, Map<String, String> headers, String system) {
         log.warn("Trying to send request with another random proxy. Exception - " + e.getMessage());
         return proxyService.getRandomMobileProxy(0L)
                 .hasElement()
                 .flatMap(hasElement -> {
                     if (hasElement) {
-                        return proxyService.getRandomMobileProxy(params.getTimeout()).flatMap(proxy ->
+                        Mono<ProxyInstance> proxyInstanceMono;
+                        if (StringUtils.hasText(system)) {
+                            proxyInstanceMono = proxyService.getMobileProxyBySystem(system, params.getTimeout());
+                        } else {
+                            proxyInstanceMono = proxyService.getRandomMobileProxy(params.getTimeout());
+                        }
+                        return proxyInstanceMono.flatMap(proxy ->
                                 getMobileProxyProxiedResponse(params, proxy, requestId, headers));
                     } else {
                         return getNonProxiedClientResponse(params, requestId)
