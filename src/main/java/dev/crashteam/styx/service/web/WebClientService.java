@@ -42,7 +42,7 @@ public class WebClientService {
 
     private final List<BaseResolver> resolvers;
 
-    private final int BUFFER_SIZE = 3 * 1024 * 1024;
+    private final int BUFFER_SIZE = 5 * 1024 * 1024;
 
     public WebClient.RequestHeadersSpec<?> getProxiedWebclientWithHttpMethod(ProxyRequestParams params, ProxyInstance proxy) {
         HttpMethod method = HttpMethod.resolve(params.getHttpMethod());
