@@ -15,14 +15,13 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 @Slf4j
 @Service
-public class ProxyHouseService implements ProxyProvider {
+public class ProxyHouseService {
 
     @Value("${integration.proxy-house.url}")
     private String proxyUrl;
     @Value("${integration.proxy-house.api-key}")
     private String apiKey;
 
-    @Override
     public Flux<ProxyInstance> getProxy() {
         return this.getProxyFromSource()
                 .map(it -> it.getData().getProxies())

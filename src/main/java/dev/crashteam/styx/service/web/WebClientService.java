@@ -27,6 +27,7 @@ import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.transport.ProxyProvider;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -117,6 +118,7 @@ public class WebClientService {
 
     private ReactorClientHttpConnector getProxiedConnector(ProxyInstance proxy) {
         HttpClient httpClient = HttpClient.create()
+                .responseTimeout(Duration.ofMillis(20000))
                 .doOnConnected(conn -> conn
                         .addHandlerLast(new ReadTimeoutHandler(handlerTimeout))
                         .addHandlerLast(new WriteTimeoutHandler(handlerTimeout)))
