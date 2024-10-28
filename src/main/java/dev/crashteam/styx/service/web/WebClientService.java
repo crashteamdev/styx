@@ -118,7 +118,7 @@ public class WebClientService {
 
     private ReactorClientHttpConnector getProxiedConnector(ProxyInstance proxy) {
         HttpClient httpClient = HttpClient.create()
-                .responseTimeout(Duration.ofMillis(20000))
+                .responseTimeout(Duration.ofMillis(25000))
                 .doOnConnected(conn -> conn
                         .addHandlerLast(new ReadTimeoutHandler(handlerTimeout))
                         .addHandlerLast(new WriteTimeoutHandler(handlerTimeout)))

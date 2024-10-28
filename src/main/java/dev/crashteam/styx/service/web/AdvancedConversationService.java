@@ -130,6 +130,7 @@ public class AdvancedConversationService {
                 .toEntity(Object.class)
                 .map(response -> Result.success(response.getStatusCodeValue(), params.getUrl(), response.getBody(),
                         params.getHttpMethod()))
+                .timeout(Duration.ofMillis(25000), Mono.error(new ReadTimeoutException("Timeout waiting for response")))
                 .onErrorResume(throwable -> throwable instanceof NonProxiedException,
                         e -> getNonProxiedClientResponse(params, requestId))
                 .onErrorResume(throwable -> throwable instanceof OriginalRequestException, e -> {
