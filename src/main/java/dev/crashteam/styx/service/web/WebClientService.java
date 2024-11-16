@@ -50,7 +50,7 @@ public class WebClientService {
         if (method == null) throw new NonValidHttpMethodException("No such http method - " + params.getHttpMethod());
         List<ProxyRequestParams.ContextValue> context = params.getContext();
         WebClient.RequestBodyUriSpec client = WebClient.builder()
-                .exchangeStrategies(getMaxBufferSize())
+                .exchangeStrategies(getExchangeStrategies())
                 .defaultHeaders(getHeadersConsumer(getHeaders(proxy, context)))
                 .baseUrl(params.getUrl())
                 .clientConnector(getProxiedConnector(proxy))
@@ -76,7 +76,7 @@ public class WebClientService {
         if (method == null) throw new NonValidHttpMethodException("No such http method - " + params.getHttpMethod());
         List<ProxyRequestParams.ContextValue> context = params.getContext();
         WebClient.RequestBodyUriSpec client = WebClient.builder()
-                .exchangeStrategies(getMaxBufferSize())
+                .exchangeStrategies(getExchangeStrategies())
                 .defaultHeaders(getHeadersConsumer(getHeaders(context)))
                 .baseUrl(params.getUrl())
                 .build()
@@ -91,7 +91,7 @@ public class WebClientService {
 
     public WebClient getProxiedWebClient(String url, ProxyInstance proxy, Map<String, String> headers) {
         return WebClient.builder()
-                .exchangeStrategies(getMaxBufferSize())
+                .exchangeStrategies(getExchangeStrategies())
                 .defaultHeaders(getHeadersConsumerWithPattern(headers))
                 .baseUrl(url)
                 .clientConnector(getProxiedConnector(proxy))
@@ -100,7 +100,7 @@ public class WebClientService {
 
     public WebClient getWebClient(String url, Map<String, String> headers) {
         return WebClient.builder()
-                .exchangeStrategies(getMaxBufferSize())
+                .exchangeStrategies(getExchangeStrategies())
                 .defaultHeaders(getHeadersConsumerWithPattern(headers))
                 .baseUrl(url)
                 .clientConnector(getConnector())
@@ -207,7 +207,7 @@ public class WebClientService {
         });
     }
 
-    private ExchangeStrategies getMaxBufferSize() {
+    private ExchangeStrategies getExchangeStrategies() {
         return ExchangeStrategies.builder()
                 .codecs(codecs -> codecs.defaultCodecs().maxInMemorySize(BUFFER_SIZE))
                 .build();
