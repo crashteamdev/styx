@@ -24,6 +24,7 @@ import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import reactor.netty.http.HttpProtocol;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.transport.ProxyProvider;
 
@@ -53,6 +54,7 @@ public class WebClientService {
                 .exchangeStrategies(getExchangeStrategies())
                 .defaultHeaders(getHeadersConsumer(getHeaders(proxy, context)))
                 .baseUrl(params.getUrl())
+                .filter(logRequest())
                 .clientConnector(getProxiedConnector(proxy))
                 .build()
                 .method(method);
@@ -109,6 +111,8 @@ public class WebClientService {
 
     private ReactorClientHttpConnector getConnector() {
         HttpClient httpClient = HttpClient.create()
+                .followRedirect(true)
+                .protocol(HttpProtocol.H2, HttpProtocol.HTTP11)
                 .doOnConnected(conn -> conn
                         .addHandlerLast(new ReadTimeoutHandler(handlerTimeout))
                         .addHandlerLast(new WriteTimeoutHandler(handlerTimeout)))
@@ -118,6 +122,8 @@ public class WebClientService {
 
     private ReactorClientHttpConnector getProxiedConnector(ProxyInstance proxy) {
         HttpClient httpClient = HttpClient.create()
+                .followRedirect(true)
+                .protocol(HttpProtocol.H2, HttpProtocol.HTTP11)
                 .responseTimeout(Duration.ofMillis(25000))
                 .doOnConnected(conn -> conn
                         .addHandlerLast(new ReadTimeoutHandler(handlerTimeout))
