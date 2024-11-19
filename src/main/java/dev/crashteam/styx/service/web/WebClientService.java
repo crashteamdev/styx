@@ -54,7 +54,7 @@ public class WebClientService {
                 .exchangeStrategies(getExchangeStrategies())
                 .defaultHeaders(getHeadersConsumer(getHeaders(proxy, context)))
                 .baseUrl(params.getUrl())
-                .filter(logRequest())
+                //.filter(logRequest())
                 .clientConnector(getProxiedConnector(proxy))
                 .build()
                 .method(method);
