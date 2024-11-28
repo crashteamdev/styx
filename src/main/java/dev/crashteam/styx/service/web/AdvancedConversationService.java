@@ -276,7 +276,7 @@ public class AdvancedConversationService {
                 .retrieve()
                 .onStatus(httpStatus -> !httpStatus.is2xxSuccessful(), this::getMonoError)
                 .toEntity(Object.class)
-                .timeout(Duration.ofMillis(4000L), Mono.error(new ReadTimeoutException("Timeout")))
+                .timeout(Duration.ofMillis(40000L), Mono.error(new ReadTimeoutException("Non proxied request timeout")))
                 .map(response -> Result.successNoProxy(response.getStatusCodeValue(), params.getUrl(), response.getBody(),
                         params.getHttpMethod()))
                 .onErrorResume(throwable -> throwable instanceof ProxyGlobalException,
@@ -305,7 +305,8 @@ public class AdvancedConversationService {
                     } else {
                         return getNonProxiedClientResponse(params, requestId);
                     }
-                });
+                })
+                .timeout(Duration.ofSeconds(40), Mono.error(new ReadTimeoutException("Retrying proxy timeout")));
     }
 
     private Mono<Result> connectionMobileProxyErrorResult(Throwable e, ProxyRequestParams params, String requestId, Map<String, String> headers, String system) {
@@ -326,7 +327,8 @@ public class AdvancedConversationService {
                         return getNonProxiedClientResponse(params, requestId)
                                 .delaySubscription(Duration.ofMillis(params.getTimeout()));
                     }
-                });
+                })
+                .timeout(Duration.ofSeconds(40), Mono.error(new ReadTimeoutException("Retrying proxy timeout")));
     }
 
     private Mono<? extends Throwable> getMonoError(ClientResponse response) {
