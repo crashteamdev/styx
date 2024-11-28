@@ -26,6 +26,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.HttpProtocol;
 import reactor.netty.http.client.HttpClient;
+import reactor.netty.resources.ConnectionProvider;
 import reactor.netty.transport.ProxyProvider;
 
 import java.time.Duration;
@@ -110,7 +111,11 @@ public class WebClientService {
     }
 
     private ReactorClientHttpConnector getConnector() {
-        HttpClient httpClient = HttpClient.create()
+        ConnectionProvider connectionProvider = ConnectionProvider.builder("withMaxIdleTime")
+                .evictInBackground(Duration.ofSeconds(handlerTimeout))
+                .maxIdleTime(Duration.ofSeconds(handlerTimeout - 1)).build();
+        HttpClient httpClient = HttpClient.create(connectionProvider)
+                .option(ChannelOption.SO_KEEPALIVE, true)
                 .followRedirect(true)
                 .protocol(HttpProtocol.H2, HttpProtocol.HTTP11)
                 .doOnConnected(conn -> conn
@@ -121,7 +126,11 @@ public class WebClientService {
     }
 
     private ReactorClientHttpConnector getProxiedConnector(ProxyInstance proxy) {
-        HttpClient httpClient = HttpClient.create()
+        ConnectionProvider connectionProvider = ConnectionProvider.builder("withMaxIdleTime")
+                .evictInBackground(Duration.ofSeconds(handlerTimeout))
+                .maxIdleTime(Duration.ofSeconds(handlerTimeout - 1)).build();
+        HttpClient httpClient = HttpClient.create(connectionProvider)
+                .option(ChannelOption.SO_KEEPALIVE, true)
                 .followRedirect(true)
                 .protocol(HttpProtocol.H2, HttpProtocol.HTTP11)
                 .responseTimeout(Duration.ofMillis(25000))
