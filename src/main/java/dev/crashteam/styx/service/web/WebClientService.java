@@ -111,10 +111,10 @@ public class WebClientService {
     }
 
     private ReactorClientHttpConnector getConnector() {
-        ConnectionProvider connectionProvider = ConnectionProvider.builder("withMaxIdleTime")
-                .evictInBackground(Duration.ofSeconds(handlerTimeout))
-                .maxIdleTime(Duration.ofSeconds(handlerTimeout - 1)).build();
-        HttpClient httpClient = HttpClient.create(connectionProvider)
+//        ConnectionProvider connectionProvider = ConnectionProvider.builder("withMaxIdleTime")
+//                .evictInBackground(Duration.ofSeconds(handlerTimeout))
+//                .maxIdleTime(Duration.ofSeconds(handlerTimeout - 1)).build();
+        HttpClient httpClient = HttpClient.create()
                 .option(ChannelOption.SO_KEEPALIVE, true)
                 .followRedirect(true)
                 .protocol(HttpProtocol.H2, HttpProtocol.HTTP11)
@@ -126,14 +126,14 @@ public class WebClientService {
     }
 
     private ReactorClientHttpConnector getProxiedConnector(ProxyInstance proxy) {
-        ConnectionProvider connectionProvider = ConnectionProvider.builder("withMaxIdleTime")
-                .evictInBackground(Duration.ofSeconds(handlerTimeout))
-                .maxIdleTime(Duration.ofSeconds(handlerTimeout - 1)).build();
-        HttpClient httpClient = HttpClient.create(connectionProvider)
+//        ConnectionProvider connectionProvider = ConnectionProvider.builder("withMaxIdleTime")
+//                .evictInBackground(Duration.ofSeconds(handlerTimeout))
+//                .maxIdleTime(Duration.ofSeconds(handlerTimeout - 1)).build();
+        HttpClient httpClient = HttpClient.create()
                 .option(ChannelOption.SO_KEEPALIVE, true)
                 .followRedirect(true)
                 .protocol(HttpProtocol.H2, HttpProtocol.HTTP11)
-                .responseTimeout(Duration.ofMillis(25000))
+                .responseTimeout(Duration.ofMillis(20000))
                 .doOnConnected(conn -> conn
                         .addHandlerLast(new ReadTimeoutHandler(handlerTimeout))
                         .addHandlerLast(new WriteTimeoutHandler(handlerTimeout)))
