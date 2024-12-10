@@ -21,6 +21,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.UnsupportedMediaTypeException;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import reactor.core.publisher.Mono;
+import reactor.netty.http.client.PrematureCloseException;
 
 import java.net.ConnectException;
 import java.time.Duration;

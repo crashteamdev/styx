@@ -9,7 +9,6 @@ import dev.crashteam.styx.model.web.ErrorResult;
 import dev.crashteam.styx.model.web.ProxyRequestParams;
 import dev.crashteam.styx.model.web.Result;
 import io.netty.handler.proxy.HttpProxyHandler;
-import io.netty.handler.proxy.ProxyConnectException;
 import io.netty.handler.ssl.SslHandshakeTimeoutException;
 import io.netty.handler.timeout.ReadTimeoutException;
 import lombok.SneakyThrows;
@@ -18,8 +17,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.CollectionUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.netty.http.client.PrematureCloseException;
 
-import java.net.ConnectException;
 import java.net.URL;
 import java.time.Duration;
 import java.util.HashMap;
@@ -69,7 +68,8 @@ public class AdvancedProxyUtils {
                 || (throwable.getCause() != null && throwable.getCause() instanceof HttpProxyHandler.HttpProxyConnectException)
                 || (throwable.getCause() != null && throwable.getCause() instanceof ReadTimeoutException)
                 || (throwable.getCause() != null && throwable.getCause() instanceof ProxyForbiddenException)
-                || (throwable.getCause() != null && throwable.getCause() instanceof TooManyRequestException);
+                || (throwable.getCause() != null && throwable.getCause() instanceof TooManyRequestException)
+                || (throwable.getCause() != null && throwable.getCause() instanceof PrematureCloseException);
     }
 
     public static Mono<ProxyInstance> getRandomProxy(Long timeout, Flux<ProxyInstance> activeProxies) {
