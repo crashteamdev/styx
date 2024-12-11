@@ -94,7 +94,7 @@ public class ProxyRepositoryImpl implements ProxyRepository {
 
     public Mono<ProxyInstance> getAndSetProxyByContextId(String contextId, String appId) {
         return hashOperations.values(RedisKey.PROXY_KEY.getValue())
-                .filter(it -> it.getUserContext().stream().noneMatch(context -> appId.equals(context.getAppId())))
+                .filter(it -> it.getUserContext() != null && it.getUserContext().stream().noneMatch(context -> appId.equals(context.getAppId())))
                 .next()
                 .hasElement()
                 .flatMap(hasElement -> {
