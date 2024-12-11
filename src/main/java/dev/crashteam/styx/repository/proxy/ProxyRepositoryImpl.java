@@ -10,13 +10,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.ReactiveHashOperations;
 import org.springframework.data.redis.core.ReactiveRedisOperations;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.CollectionUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Repository
+@SuppressWarnings("unused")
 public class ProxyRepositoryImpl implements ProxyRepository {
 
     private final ReactiveRedisOperations<String, ProxyInstance> redisOperations;
@@ -75,6 +82,67 @@ public class ProxyRepositoryImpl implements ProxyRepository {
                 .values(RedisKey.PROXY_KEY.getValue())
                 .filter(it -> proxySource.equals(it.getProxySource()))
                 .filterWhen(proxy -> forbiddenProxyRepository.notExistsByKey(proxy, rootUrl));
+    }
+
+    public Mono<ProxyInstance> getProxyByContextId(String contextId) {
+        return hashOperations
+                .values(RedisKey.PROXY_KEY.getValue())
+                .filter(it -> it.getUserContext() != null
+                        && it.getUserContext().stream().anyMatch(context -> context.getContextId().equals(contextId)))
+                .next();
+    }
+
+    public Mono<ProxyInstance> getAndSetProxyByContextId(String contextId, String appId) {
+        return hashOperations.values(RedisKey.PROXY_KEY.getValue())
+                .filter(it -> it.getUserContext().stream().noneMatch(context -> appId.equals(context.getAppId())))
+                .next()
+                .hasElement()
+                .flatMap(hasElement -> {
+                    if (hasElement) {
+                        return hashOperations.values(RedisKey.PROXY_KEY.getValue())
+                                .filter(it -> it.getUserContext().stream().noneMatch(context -> appId.equals(context.getAppId())))
+                                .next()
+                                .doOnNext(it -> {
+                                    saveProxyContext(it, contextId, appId);
+                                });
+                    }
+                    // Считаем что все элементы уже имеют данный AppId, берем случайный
+                    return hashOperations.randomEntry(RedisKey.REQUEST_KEY.getValue())
+                            .map(Map.Entry::getValue)
+                            .doOnNext(it -> {
+                                saveProxyContext(it, contextId, appId);
+                            });
+                });
+    }
+
+    private void saveProxyContext(ProxyInstance proxyInstance, String contextId, String appId) {
+        List<ProxyInstance.UserContext> contextIds = proxyInstance.getUserContext();
+        if (!CollectionUtils.isEmpty(contextIds)) {
+            List<ProxyInstance.UserContext> userContexts = contextIds.stream()
+                    .filter(it -> appId.equals(it.getAppId())).toList();
+            if (!CollectionUtils.isEmpty(userContexts)) {
+                log.info("Deleting all existing entries for appId - {}", appId);
+                proxyInstance.getUserContext().removeAll(userContexts);
+            }
+            log.info("Add context for proxy - {}:{}", proxyInstance.getHost(), proxyInstance.getPort());
+            ProxyInstance.UserContext userContext = new ProxyInstance.UserContext();
+            userContext.setContextId(contextId);
+            userContext.setInUse(true);
+            userContext.setCreatedTime(System.currentTimeMillis());
+            userContext.setAppId(appId);
+            contextIds.add(userContext);
+        } else {
+            log.info("Created new context for proxy - {}:{}", proxyInstance.getHost(), proxyInstance.getPort());
+            List<ProxyInstance.UserContext> context = new ArrayList<>();
+            ProxyInstance.UserContext userContext = new ProxyInstance.UserContext();
+            userContext.setContextId(contextId);
+            userContext.setInUse(true);
+            userContext.setCreatedTime(System.currentTimeMillis());
+            userContext.setAppId(appId);
+            context.add(userContext);
+            proxyInstance.setUserContext(context);
+        }
+        saveExisting(proxyInstance).subscribe();
     }
 
     public Flux<ProxyInstance> getRandomProxyNotIncludeForbidden(String rootUrl) {

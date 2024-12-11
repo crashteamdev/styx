@@ -1,8 +1,6 @@
 package dev.crashteam.styx.model.proxy;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.util.List;
 
@@ -20,11 +18,20 @@ public class ProxyInstance {
     private String countryCode;
     private String userAgent;
     private String system;
+    private List<UserContext> userContext;
     private List<BadUrl> badUrls;
 
     @Data
     public static class BadUrl {
         private int point;
         private String url;
+    }
+
+    @Data
+    public static class UserContext {
+        private String contextId;
+        private Long createdTime;
+        private String appId;
+        private Boolean inUse;
     }
 }

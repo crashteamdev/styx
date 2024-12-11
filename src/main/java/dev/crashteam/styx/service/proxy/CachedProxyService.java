@@ -47,6 +47,18 @@ public class CachedProxyService {
         proxyRepository.saveExisting(proxy).subscribe();
     }
 
+    public Mono<ProxyInstance> getByContextId(String contextId, String appId) {
+        return proxyRepository.getProxyByContextId(contextId)
+                .hasElement()
+                .flatMap(hasElement -> {
+                    if (hasElement) {
+                        return proxyRepository.getProxyByContextId(contextId);
+                    } else {
+                        return proxyRepository.getAndSetProxyByContextId(contextId, appId);
+                    }
+                });
+    }
+
     public Mono<ProxyInstance> getMobileProxyByKey(String proxyKey) {
         return proxyRepository.getMobileProxyByKey(proxyKey);
     }

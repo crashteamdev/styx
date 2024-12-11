@@ -53,32 +53,14 @@ public class AdvancedConversationService {
         String requestId = UUID.randomUUID().toString();
         long timeout = params.getTimeout() == null ? 0L : params.getTimeout();
         Map<String, String> headersByPattern = AdvancedProxyUtils.getHeadersByPattern(headers);
-        boolean isMarket = params.getContext()
-                .stream()
-                .filter(it -> it.getKey().equals("market"))
-                .anyMatch(it -> it.getValue().equals("KE") || it.getValue().equals("UZUM"));
-        if (isMarket) {
-            params.setProxySource(ProxySource.MOBILE_PROXY);
-        } else {
-            params.setProxySource(ProxySource.PROXY_HOUSE);
-        }
+        String contextId = headersByPattern.get("X-Context-Id");
+        String appId = headersByPattern.get("X-App-Id");
         Mono<ProxyInstance> proxyInstance;
-        if (isMarket) {
-            String market = params.getContext()
-                    .stream()
-                    .filter(it -> it.getKey().equals("market"))
-                    .filter(it -> it.getValue().equals("KE") || it.getValue().equals("UZUM"))
-                    .map(ProxyRequestParams.ContextValue::getValue)
-                    .findFirst()
-                    .map(String::valueOf)
-                    .orElseThrow();
-            proxyInstance = proxyService.getMobileProxyBySystem(market, timeout);
+        if (StringUtils.hasText(contextId) && StringUtils.hasText(appId)) {
+            log.info("Get proxy for app {}", appId);
+            proxyInstance = proxyService.getByContextId(contextId, appId);
         } else {
-            proxyInstance =
-                    ProxySource.MOBILE_PROXY.equals(params.getProxySource())
-                            ? proxyService.getRandomMobileProxy(params.getTimeout())
-                            : proxyService.getRandomProxy(params, params.getUrl())
-                            .delaySubscription(Duration.ofMillis(timeout));
+            proxyInstance = getRandomOrMobileProxy(params, timeout);
         }
         return proxyInstance
                 .hasElement()
@@ -147,12 +129,10 @@ public class AdvancedConversationService {
                     return retriesRequestService.existsByRequestId(requestId)
                             .flatMap(exist -> getRetriesRequest(exist, requestId))
                             .flatMap(retriesRequest -> {
-                                if (!(e instanceof ReadTimeoutException)
-                                        || !(e.getCause() != null && e.getCause() instanceof ReadTimeoutException)) {
+                                if (needToChangeIp(e)) {
                                     proxy.setBadProxyPoint(proxy.getBadProxyPoint() + 1);
                                     proxyService.saveExisting(proxy);
                                 }
-
                                 retriesRequest.setRetries(retriesRequest.getRetries() - 1);
                                 if (retriesRequest.getRetries() == 0) {
                                     retriesRequestService.deleteByRequestId(requestId).subscribe();
@@ -382,5 +362,42 @@ public class AdvancedConversationService {
             retriesRequest.setTimeout(retriesTimeout);
             return Mono.just(retriesRequest);
         }
+    }
+
+    private Mono<ProxyInstance> getRandomOrMobileProxy(ProxyRequestParams params, long timeout) {
+        boolean isMarket = params.getContext()
+                .stream()
+                .filter(it -> it.getKey().equals("market"))
+                .anyMatch(it -> it.getValue().equals("KE") || it.getValue().equals("UZUM"));
+        if (isMarket) {
+            params.setProxySource(ProxySource.MOBILE_PROXY);
+        } else {
+            params.setProxySource(ProxySource.PROXY_HOUSE); // Это сделано чтобы не попадать в мобильные прокси, в целом можно будет удалить
+        }
+        Mono<ProxyInstance> proxyInstance;
+        if (isMarket) {
+            String market = params.getContext()
+                    .stream()
+                    .filter(it -> it.getKey().equals("market"))
+                    .filter(it -> it.getValue().equals("KE") || it.getValue().equals("UZUM"))
+                    .map(ProxyRequestParams.ContextValue::getValue)
+                    .findFirst()
+                    .map(String::valueOf)
+                    .orElseThrow();
+            proxyInstance = proxyService.getMobileProxyBySystem(market, timeout);
+        } else {
+            proxyInstance =
+                    ProxySource.MOBILE_PROXY.equals(params.getProxySource())
+                            ? proxyService.getRandomMobileProxy(params.getTimeout())
+                            : proxyService.getRandomProxy(params, params.getUrl())
+                            .delaySubscription(Duration.ofMillis(timeout));
+        }
+        return proxyInstance;
+    }
+
+    private boolean needToChangeIp(Throwable e) {
+        return !(e instanceof ReadTimeoutException)
+                || !(e.getCause() != null && e.getCause() instanceof ReadTimeoutException)
+                || !(e.getCause() != null && e.getCause() instanceof PrematureCloseException);
     }
 }
