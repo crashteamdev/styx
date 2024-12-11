@@ -396,7 +396,7 @@ public class AdvancedConversationService {
     }
 
     private boolean needToChangeIp(Throwable e) {
-        return (e instanceof ProxyForbiddenException && e.getCause() != null && e.getCause() instanceof ProxyForbiddenException)
+        return (e instanceof ProxyForbiddenException || (e.getCause() != null && e.getCause() instanceof ProxyForbiddenException))
                 || (!(e instanceof ReadTimeoutException)
                 || !(e.getCause() != null && e.getCause() instanceof ReadTimeoutException)
                 || !(e.getCause() != null && e.getCause() instanceof PrematureCloseException));
