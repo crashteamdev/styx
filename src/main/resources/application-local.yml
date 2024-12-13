@@ -22,12 +22,12 @@ app:
 integration:
   proxys-io:
     url: https://proxys.io/ru/api/v2
-    api-key: 3cebb29602e9a7eb9e043578771af688
+    api-key:
   proxy-house:
-    api-key: 607295_1714898905_3c3c40c2727b7ba5e0ffa04675ad6cdc44ef5560
+    api-key:
     url: https://proxy.house/api/open/v1/
   proxy-line:
-    api-key: v3ityelj2eh53re1ukysymrx7ci0oaytsn0ozt33
+    api-key:
     url: https://panel.proxyline.net/api/
 
 application:

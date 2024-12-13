@@ -49,7 +49,7 @@ integration:
     url: https://proxys.io/ru/api/v2
     api-key:
   mobile-proxy:
-    api-key: eec7092e9738914593b3a102e15b8852
+    api-key:
     url: https://mobileproxy.space/api.html
   proxy-line:
     api-key:
