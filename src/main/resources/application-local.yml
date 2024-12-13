@@ -1,0 +1,59 @@
+spring:
+  codec:
+    log-request-details: false
+  application:
+    name: '@project.name@'
+    output:
+      ansi:
+        enabled: always
+  redis:
+    host: 0.0.0.0
+    port: 55000
+    password: redispw
+  mvc:
+    log-request-details: false
+app:
+  redis:
+    local: true
+  timeout-handler: 10
+  proxy:
+    timeout: 10000
+
+integration:
+  proxys-io:
+    url: https://proxys.io/ru/api/v2
+    api-key: 3cebb29602e9a7eb9e043578771af688
+  proxy-house:
+    api-key: 607295_1714898905_3c3c40c2727b7ba5e0ffa04675ad6cdc44ef5560
+    url: https://proxy.house/api/open/v1/
+  proxy-line:
+    api-key: v3ityelj2eh53re1ukysymrx7ci0oaytsn0ozt33
+    url: https://panel.proxyline.net/api/
+
+application:
+  forbidden-expire: 1
+  scheduler:
+    lockAtMost: 15m
+    redis:
+      cache-cron: 0 0/1 * * * ?
+      forbidden-url-cron: 0/10 * * * * ?
+      update-user-agents: 0 0 3 1/1 * ?
+
+logging:
+  level:
+    io:
+      netty:
+        channel:
+          DefaultChannelPipeline: DEBUG
+    dev:
+      crashteam:
+        styx:
+          service:
+            web:
+              WebClientService:
+              AdvancedConversationService:
+    reactor:
+      netty:
+        http:
+          client:
+
