@@ -107,7 +107,7 @@ public class ProxyRepositoryImpl implements ProxyRepository {
                                 });
                     }
                     // Считаем что все элементы уже имеют данный AppId, берем случайный
-                    return hashOperations.randomEntry(RedisKey.REQUEST_KEY.getValue())
+                    return hashOperations.randomEntry(RedisKey.PROXY_KEY.getValue())
                             .map(Map.Entry::getValue)
                             .doOnNext(it -> {
                                 saveProxyContext(it, contextId, appId);
