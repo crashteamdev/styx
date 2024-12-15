@@ -15,7 +15,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 @Slf4j
 @Service
-public class ProxyHouseService {
+public class ProxyHouseService implements ProxyProvider{
 
     @Value("${integration.proxy-house.url}")
     private String proxyUrl;
