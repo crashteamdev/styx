@@ -382,7 +382,7 @@ public class AdvancedConversationService {
     private Mono<ProxyInstance> getRandomOrMobileProxy(ProxyRequestParams params, long timeout) {
         boolean isMarket = params.getContext()
                 .stream()
-                .filter(it -> it.getKey().equals("market"))
+                .filter(it -> it.getKey().equalsIgnoreCase("market"))
                 .anyMatch(it -> it.getValue().equals("KE") || it.getValue().equals("UZUM"));
         if (isMarket) {
             params.setProxySource(ProxySource.MOBILE_PROXY);
