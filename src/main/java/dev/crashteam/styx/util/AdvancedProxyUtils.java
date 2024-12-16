@@ -64,6 +64,7 @@ public class AdvancedProxyUtils {
                 || throwable instanceof ReadTimeoutException
                 || throwable instanceof ProxyForbiddenException
                 || throwable instanceof TooManyRequestException
+                || throwable instanceof PrematureCloseException
                 || (throwable.getCause() != null && throwable.getCause() instanceof SslHandshakeTimeoutException)
                 || (throwable.getCause() != null && throwable.getCause() instanceof HttpProxyHandler.HttpProxyConnectException)
                 || (throwable.getCause() != null && throwable.getCause() instanceof ReadTimeoutException)

@@ -53,15 +53,7 @@ public class AdvancedConversationService {
         String requestId = UUID.randomUUID().toString();
         long timeout = params.getTimeout() == null ? 0L : params.getTimeout();
         Map<String, String> headersByPattern = AdvancedProxyUtils.getHeadersByPattern(headers);
-        String contextId = headersByPattern.get("X-Context-Id");
-        String appId = headersByPattern.get("X-App-Id");
-        Mono<ProxyInstance> proxyInstance;
-        if (StringUtils.hasText(contextId) && StringUtils.hasText(appId)) {
-            log.info("Get proxy for app {}", appId);
-            proxyInstance = proxyService.getByContextId(contextId, appId);
-        } else {
-            proxyInstance = getRandomOrMobileProxy(params, timeout);
-        }
+        Mono<ProxyInstance> proxyInstance = getProxy(params, headersByPattern, timeout);
         return proxyInstance
                 .hasElement()
                 .flatMap(hasElement -> {
@@ -186,15 +178,29 @@ public class AdvancedConversationService {
                             .flatMap(retriesRequest -> {
                                 Optional<ProxyInstance.BadUrl> badUrlOptional = getOptionalBadUrl(proxy, rootUrl);
                                 retriesRequest.setRetries(retriesRequest.getRetries() - 1);
+                                String contextId = headers.get("X-Context-Id");
+                                String appId = headers.get("X-App-Id");
                                 if (retriesRequest.getRetries() == 0) {
-                                    log.error("Proxy - [{}:{}] request failed, URL - {}, HttpMethod - {}. Cause - {}", proxy.getHost(),
-                                            proxy.getPort(), params.getUrl(), params.getHttpMethod(),
-                                            Optional.ofNullable(e.getCause()).map(Throwable::getMessage).orElse(e.getMessage()));
-                                    if (e instanceof TooManyRequestException
-                                            || (e.getCause() != null && e.getCause() instanceof TooManyRequestException)) {
-                                        return getNonProxiedResponseOnRetryFailed(requestId, params);
+                                    if (!(StringUtils.hasText(contextId) && StringUtils.hasText(appId))) {
+                                        log.error("Proxy - [{}:{}] request failed, URL - {}, HttpMethod - {}. Cause - {}", proxy.getHost(),
+                                                proxy.getPort(), params.getUrl(), params.getHttpMethod(),
+                                                Optional.ofNullable(e.getCause()).map(Throwable::getMessage).orElse(e.getMessage()));
+                                        if (e instanceof TooManyRequestException
+                                                || (e.getCause() != null && e.getCause() instanceof TooManyRequestException)) {
+                                            return getNonProxiedResponseOnRetryFailed(requestId, params);
+                                        }
+                                        return getNonProxiedResponseOnRetryFailed(requestId, badUrlOptional, rootUrl, proxy, params);
+                                    } else {
+                                        if (e instanceof ProxyForbiddenException forbiddenException) {
+                                            return Mono.just(ErrorResult.originalRequestError(forbiddenException.getStatusCode(),
+                                                    params.getUrl(), e, forbiddenException.getBody()));
+                                        } else if (e instanceof TooManyRequestException manyRequestException) {
+                                            return Mono.just(ErrorResult.originalRequestError(manyRequestException.getStatusCode(),
+                                                    params.getUrl(), e, manyRequestException.getBody()));
+                                        } else {
+                                            return Mono.just(ErrorResult.unknownError(params.getUrl(), e));
+                                        }
                                     }
-                                    return getNonProxiedResponseOnRetryFailed(requestId, badUrlOptional, rootUrl, proxy, params);
                                 }
                                 long exponentialTimeout = (long) (retriesRequest.getTimeout() * exponent);
                                 retriesRequest.setTimeout(exponentialTimeout);
@@ -276,13 +282,22 @@ public class AdvancedConversationService {
 
     private Mono<Result> connectionErrorResult(Throwable e, ProxyRequestParams params, String requestId, Map<String, String> headers) {
         log.warn("Trying to send request with another random proxy. Exception - " + e.getMessage());
-        return proxyService.getRandomProxy(params, params.getUrl())
+        String contextId = headers.get("X-Context-Id");
+        String appId = headers.get("X-App-Id");
+        Mono<ProxyInstance> proxyInstance;
+        boolean contextUserRequest = StringUtils.hasText(contextId) && StringUtils.hasText(appId);
+        if (contextUserRequest) {
+            log.info("Get proxy for app {}", appId);
+            proxyInstance = proxyService.getByContextId(contextId, appId);
+        } else {
+            proxyInstance = proxyService.getRandomProxyWithoutMobile(params.getUrl());
+        }
+        return proxyInstance
                 .delaySubscription(Duration.ofMillis(params.getTimeout() == null ? 0L : params.getTimeout()))
                 .hasElement()
                 .flatMap(hasElement -> {
                     if (hasElement) {
-                        return proxyService.getRandomProxy(params, params.getUrl()).flatMap(proxy ->
-                                getProxiedResponse(params, proxy, requestId, headers));
+                        return proxyInstance.flatMap(proxy -> getProxiedResponse(params, proxy, requestId, headers));
                     } else {
                         return getNonProxiedClientResponse(params, requestId);
                     }
@@ -389,8 +404,21 @@ public class AdvancedConversationService {
             proxyInstance =
                     ProxySource.MOBILE_PROXY.equals(params.getProxySource())
                             ? proxyService.getRandomMobileProxy(params.getTimeout())
-                            : proxyService.getRandomProxy(params, params.getUrl())
+                            : proxyService.getRandomProxyWithoutMobile(params.getUrl())
                             .delaySubscription(Duration.ofMillis(timeout));
+        }
+        return proxyInstance;
+    }
+
+    private Mono<ProxyInstance> getProxy(ProxyRequestParams params, Map<String, String> headers, long timeout) {
+        String contextId = headers.get("X-Context-Id");
+        String appId = headers.get("X-App-Id");
+        Mono<ProxyInstance> proxyInstance;
+        if (StringUtils.hasText(contextId) && StringUtils.hasText(appId)) {
+            log.info("Get proxy for app {}", appId);
+            proxyInstance = proxyService.getByContextId(contextId, appId);
+        } else {
+            proxyInstance = getRandomOrMobileProxy(params, timeout);
         }
         return proxyInstance;
     }
@@ -400,5 +428,10 @@ public class AdvancedConversationService {
                 || (!(e instanceof ReadTimeoutException)
                 || !(e.getCause() != null && e.getCause() instanceof ReadTimeoutException)
                 || !(e.getCause() != null && e.getCause() instanceof PrematureCloseException));
+    }
+
+    private boolean originalRequestException(Throwable e) {
+        return (e instanceof TooManyRequestException || (e.getCause() != null && e.getCause() instanceof TooManyRequestException) ||
+                (e instanceof ProxyForbiddenException || (e.getCause() != null && e.getCause() instanceof ProxyForbiddenException)));
     }
 }

@@ -77,10 +77,10 @@ public class ProxyRepositoryImpl implements ProxyRepository {
                 .map(Map.Entry::getValue);
     }
 
-    public Flux<ProxyInstance> getRandomProxyNotIncludeForbidden(ProxySource proxySource, String rootUrl) {
+    public Flux<ProxyInstance> getRandomProxyNotIncludeForbiddenAndMobile(String rootUrl) {
         return hashOperations
                 .values(RedisKey.PROXY_KEY.getValue())
-                .filter(it -> proxySource.equals(it.getProxySource()))
+                .filter(it -> !it.getProxySource().equals(ProxySource.MOBILE_PROXY))
                 .filterWhen(proxy -> forbiddenProxyRepository.notExistsByKey(proxy, rootUrl));
     }
 
