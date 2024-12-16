@@ -102,7 +102,7 @@ public class ProxyRepositoryImpl implements ProxyRepository {
                 .flatMap(hasElement -> {
                     if (hasElement) {
                         return hashOperations.values(RedisKey.PROXY_KEY.getValue())
-                                .filter(it -> it.getUserContext().stream().noneMatch(context -> appId.equals(context.getAppId())))
+                                .filter(it -> it.getUserContext() != null && it.getUserContext().stream().noneMatch(context -> appId.equals(context.getAppId())))
                                 .next()
                                 .doOnNext(it -> {
                                     saveProxyContext(it, contextId, appId);
