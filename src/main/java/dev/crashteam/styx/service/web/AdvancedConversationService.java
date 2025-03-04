@@ -399,7 +399,11 @@ public class AdvancedConversationService {
                     .findFirst()
                     .map(String::valueOf)
                     .orElseThrow();
-            proxyInstance = proxyService.getMobileProxyBySystem(market, timeout);
+            if (market.equals("KE")) { // Временное решение, чтобы КЕ брал оба прокси
+                proxyInstance = proxyService.getRandomMobileProxy(params.getTimeout());
+            } else {
+                proxyInstance = proxyService.getMobileProxyBySystem(market, timeout);
+            }
         } else {
             proxyInstance =
                     ProxySource.MOBILE_PROXY.equals(params.getProxySource())
