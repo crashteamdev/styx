@@ -8,3 +8,8 @@ on:
 jobs:
   build:
     uses: crashteamdev/jvm-workflows/.github/workflows/maven-service-build.yml@v1
+    with:
+      java-version: '21'
+      github-user: vitaxa
+    secrets:
+      github-pat: ${{ secrets.CRASHTEAM_REPO_TOKEN }}
