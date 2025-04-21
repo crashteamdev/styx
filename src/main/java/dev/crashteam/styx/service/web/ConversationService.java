@@ -129,7 +129,7 @@ public class ConversationService {
                     return Mono.error(new ProxyGlobalException(e.getMessage(), e));
                 })
                 .flatMap(body -> Mono.error(new OriginalRequestException("Proxy request error", body,
-                        response.rawStatusCode())));
+                        response.statusCode().value())));
 
     }
 }

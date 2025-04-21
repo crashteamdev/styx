@@ -5,11 +5,11 @@
     <parent>
         <groupId>dev.crashteam</groupId>
         <artifactId>service-parent-pom</artifactId>
-        <version>1.0.7</version>
+        <version>2.0.0</version>
     </parent>
     <artifactId>styx</artifactId>
     <version>0.0.1</version>
-    <name>Styx</name>
+    <name>Styx</name>f
     <description>Proxy service</description>
     <properties>
         <server.port>8022</server.port>
@@ -17,6 +17,7 @@
         <exposed.ports>${server.port} ${management.port}</exposed.ports>
         <shedlock-provider-redis-spring.version>4.41.0</shedlock-provider-redis-spring.version>
         <shedlock-spring.version>4.41.0</shedlock-spring.version>
+        <java.version>21</java.version>
     </properties>
     <dependencies>
         <!-- Spring -->

@@ -103,7 +103,7 @@ public class AdvancedConversationService {
                 .onStatus(httpStatus -> httpStatus.equals(HttpStatus.FORBIDDEN), this::getForbiddenError)
                 .onStatus(httpStatus -> httpStatus.equals(HttpStatus.TOO_MANY_REQUESTS), this::getTooManyRequestError)
                 .toEntity(Object.class)
-                .map(response -> Result.success(response.getStatusCodeValue(), params.getUrl(), response.getBody(),
+                .map(response -> Result.success(response.getStatusCode().value(), params.getUrl(), response.getBody(),
                         params.getHttpMethod()))
                 //.timeout(Duration.ofSeconds(20), Mono.error(new ReadTimeoutException("Mobile proxy timeout")))
                 .onErrorResume(throwable -> throwable instanceof NonProxiedException,
@@ -332,7 +332,7 @@ public class AdvancedConversationService {
                     return Mono.error(new ProxyGlobalException(e.getMessage(), e));
                 })
                 .flatMap(body -> Mono.error(new OriginalRequestException("Proxy request failed", body,
-                        response.rawStatusCode())));
+                        response.statusCode().value())));
 
     }
 
@@ -343,20 +343,21 @@ public class AdvancedConversationService {
                     return Mono.error(new ProxyGlobalException(e.getMessage(), e));
                 })
                 .flatMap(body -> Mono.error(new ProxyForbiddenException(("Proxy request forbidden, " +
-                        "response code from proxied client - %s").formatted(response.rawStatusCode()), body,
-                        response.rawStatusCode())));
+                        "response code from proxied client - %s").formatted(response.statusCode().value()), body,
+                        response.statusCode().value())));
 
     }
 
     private Mono<? extends Throwable> getTooManyRequestError(ClientResponse response) {
+        log.warn("Proxy too many request, retrying");
         return response.bodyToMono(String.class)
                 .onErrorResume(Objects::nonNull, e -> {
                     log.error("Unknown error", e);
                     return Mono.error(new TooManyRequestException());
                 })
                 .flatMap(body -> Mono.error(new TooManyRequestException(("Proxy too many request, " +
-                        "response code from proxied client - %s").formatted(response.rawStatusCode()), body,
-                        response.rawStatusCode())));
+                        "response code from proxied client - %s").formatted(response.statusCode().value()), body,
+                        response.statusCode().value())));
 
     }
 

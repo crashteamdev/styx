@@ -27,12 +27,10 @@ spring:
     output:
       ansi:
         enabled: always
-  redis:
-    host:
-    port:
-    username:
-    password:
-    ssl: true
+  data:
+    redis:
+      ssl:
+        enabled: true
 app:
   redis:
     local: false

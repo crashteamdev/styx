@@ -26,7 +26,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.HttpProtocol;
 import reactor.netty.http.client.HttpClient;
-import reactor.netty.resources.ConnectionProvider;
 import reactor.netty.transport.ProxyProvider;
 
 import java.time.Duration;
@@ -48,7 +47,7 @@ public class WebClientService {
     private final int BUFFER_SIZE = 5 * 1024 * 1024;
 
     public WebClient.RequestHeadersSpec<?> getProxiedWebclientWithHttpMethod(ProxyRequestParams params, ProxyInstance proxy) {
-        HttpMethod method = HttpMethod.resolve(params.getHttpMethod());
+        HttpMethod method = HttpMethod.valueOf(params.getHttpMethod());
         if (method == null) throw new NonValidHttpMethodException("No such http method - " + params.getHttpMethod());
         List<ProxyRequestParams.ContextValue> context = params.getContext();
         WebClient.RequestBodyUriSpec client = WebClient.builder()
@@ -75,7 +74,7 @@ public class WebClientService {
     }
 
     public WebClient.RequestHeadersSpec<?> getWebclientWithHttpMethod(ProxyRequestParams params) {
-        HttpMethod method = HttpMethod.resolve(params.getHttpMethod());
+        HttpMethod method = HttpMethod.valueOf(params.getHttpMethod());
         if (method == null) throw new NonValidHttpMethodException("No such http method - " + params.getHttpMethod());
         List<ProxyRequestParams.ContextValue> context = params.getContext();
         WebClient.RequestBodyUriSpec client = WebClient.builder()
@@ -171,12 +170,9 @@ public class WebClientService {
         return headers;
     }
 
-    @SuppressWarnings("unchecked")
     public Map<String, String> getHeaders(ProxyInstance proxy, List<ProxyRequestParams.ContextValue> context) {
         Map<String, String> headers = getHeaders(context);
-        if (context.stream().anyMatch(it -> it.getValue().equals("UZUM"))) {
-            headers.put("User-Agent", "Some-Sneaky-Agent");
-        } else if (StringUtils.hasText(proxy.getUserAgent())) {
+        if (StringUtils.hasText(proxy.getUserAgent())) {
             headers.put("User-Agent", proxy.getUserAgent());
         }
         return headers;
