@@ -9,7 +9,7 @@
     </parent>
     <artifactId>styx</artifactId>
     <version>0.0.1</version>
-    <name>Styx</name>f
+    <name>Styx</name>
     <description>Proxy service</description>
     <properties>
         <server.port>8022</server.port>
